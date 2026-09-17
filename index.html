@@ -24,8 +24,12 @@
 
 <div class="card">
   <h2>ลงทะเบียน / อัปเดตข้อมูลอุปกรณ์ ทสภ.</h2>
-  <form id="regForm">
+  <!-- ใช้ Form ส่งข้อมูลผ่าน Hidden Iframe เพื่อแก้ปัญหา CORS แบบเบ็ดเสร็จ -->
+  <form id="regForm" method="POST" action="https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec" target="hidden_iframe">
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;" onload="if(isSubmitted) { alert('บันทึกข้อมูลเรียบร้อยแล้วค่ะ!'); if(typeof liff !== 'undefined' && liff.isInClient()) { liff.closeWindow(); } else { location.reload(); } }"></iframe>
     
+    <input type="hidden" name="payload" id="payloadInput">
+
     <div class="form-group">
       <label>แนบรูปหน้าบัตรอนุญาตบุคคล *</label>
       <input type="file" id="cardImg" accept="image/*" onchange="previewImage(this, 'cardImgPreview')">
@@ -95,9 +99,9 @@
   let itemIndex = 0;
   let configData = {};
   let existingCardImgUrl = '-';
+  let isSubmitted = false;
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec"; 
 
-  // ฟังก์ชันช่วยดึงข้อมูลแบบ JSONP เพื่อข้าม CORS
   function fetchJSONP(url, callbackName) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -116,10 +120,7 @@
   }
 
   window.onload = async function() {
-    // 1. ดึงข้อมูล Dropdown ให้เสร็จก่อน
     await fetchConfig();
-
-    // 2. เริ่มต้น LIFF และดึงข้อมูลผู้ใช้
     liff.init({ liffId: "2011647032-x6HiAaYa" }).then(async () => {
       if (liff.isLoggedIn()) {
         const profile = await liff.getProfile();
@@ -166,7 +167,6 @@
         }
       }
     } catch(err) { console.error("Fetch User Error:", err); }
-    
     if(itemIndex === 0) addItem();
   }
 
@@ -275,24 +275,13 @@
         pdpaAccepted: document.getElementById('pdpa').checked
       };
 
-      const res = await fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
-      const data = await res.json();
+      // ยัดข้อมูลลงใน Hidden Input แล้วสั่ง Submit ฟอร์มผ่าน Iframe
+      document.getElementById('payloadInput').value = JSON.stringify(payload);
+      isSubmitted = true;
+      this.submit();
 
-      if (data.status === "success") {
-        alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
-        if (typeof liff !== 'undefined' && liff.isInClient()) {
-          liff.closeWindow();
-        }
-      } else {
-        alert("เกิดข้อผิดพลาด: " + data.message);
-        submitBtn.disabled = false;
-        submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน";
-      }
     } catch(err) {
-      alert("บันทึกข้อมูลสำเร็จ! (หน้าต่างจะปิดอัตโนมัติ)");
-      if (typeof liff !== 'undefined' && liff.isInClient()) {
-        liff.closeWindow();
-      }
+      alert("เกิดข้อผิดพลาดในการเตรียมข้อมูล: " + err.message);
       submitBtn.disabled = false;
       submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน";
     }
