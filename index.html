@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ลงทะเบียนอุปกรณ์อิเล็กทรอนิกส์ ทสภ.</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 15px; margin: 0; }
+    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+    h2 { color: #003366; text-align: center; margin-bottom: 20px; font-size: 20px; }
+    .form-group { margin-bottom: 15px; }
+    label { font-weight: bold; display: block; margin-bottom: 5px; color: #333; font-size: 14px; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+    .item-block { border: 1px dashed #0056b3; padding: 15px; border-radius: 8px; background: #f0f7ff; margin-bottom: 15px; }
+    .btn { background-color: #0056b3; color: white; padding: 12px; border: none; border-radius: 6px; width: 100%; font-size: 16px; cursor: pointer; font-weight: bold; }
+    .btn:disabled { background-color: #cccccc; cursor: not-allowed; }
+    .btn-add { background-color: #28a745; margin-bottom: 15px; }
+    .pdpa-box { font-size: 13px; color: #555; background: #eee; padding: 10px; border-radius: 6px; margin-bottom: 15px; }
+    .img-preview { max-width: 100%; height: 120px; object-fit: contain; margin-top: 5px; display: none; border: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>ลงทะเบียน / อัปเดตข้อมูลอุปกรณ์ ทสภ.</h2>
+  <form id="regForm">
+    
+    <div class="form-group">
+      <label>แนบรูปหน้าบัตรอนุญาตบุคคล *</label>
+      <input type="file" id="cardImg" accept="image/*" onchange="previewImage(this, 'cardImgPreview')">
+      <img id="cardImgPreview" class="img-preview">
+    </div>
+
+    <div class="form-group">
+      <label>หมายเลขบัตรอนุญาตบุคคล *</label>
+      <input type="text" id="cardNumber" required placeholder="กรอกหมายเลขบัตรอนุญาต">
+    </div>
+
+    <div class="form-group">
+      <label>คำนำหน้าชื่อ *</label>
+      <select id="title" required><option value="">-- กำลังโหลดรายการ --</option></select>
+    </div>
+
+    <div class="form-group">
+      <label>ชื่อ * (ไม่มีคำนำหน้านาม)</label>
+      <input type="text" id="firstName" required placeholder="ชื่อจริง">
+    </div>
+
+    <div class="form-group">
+      <label>นามสกุล *</label>
+      <input type="text" id="lastName" required placeholder="นามสกุล">
+    </div>
+
+    <div class="form-group">
+      <label>อีเมล (E-Mail) *</label>
+      <input type="email" id="email" required placeholder="example@email.com">
+    </div>
+
+    <div class="form-group">
+      <label>บริษัท *</label>
+      <input type="text" id="company" required placeholder="ระบุชื่อบริษัท/หน่วยงาน">
+    </div>
+
+    <div class="form-group">
+      <label>หน้าที่ หรือ สังกัด *</label>
+      <input type="text" id="role" required placeholder="ระบุหน้าที่ หรือสังกัด">
+    </div>
+
+    <div class="form-group">
+      <label>หมายเลขโทรศัพท์ (10 หลัก) *</label>
+      <input type="tel" id="phone" pattern="[0-9]{10}" maxlength="10" required placeholder="08XXXXXXXX">
+    </div>
+
+    <hr style="margin: 20px 0;">
+    <h3 style="font-size:16px; color:#003366;">รายการลงทะเบียนอุปกรณ์ (สูงสุด 5 รายการ)</h3>
+    
+    <div id="itemsContainer"></div>
+
+    <button type="button" id="btnAddItem" class="btn btn-add" onclick="addItem()">+ เพิ่มรายการอุปกรณ์</button>
+
+    <div class="pdpa-box">
+      <input type="checkbox" id="pdpa" required style="width: auto;">
+      <label for="pdpa" style="display:inline; font-weight:normal;">
+        ข้าพเจ้ายินยอมให้ใช้ข้อมูลเพื่อการตรวจสอบตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA) และรับทราบว่าจะปฏิบัติตามข้อกำหนดและมาตรการรักษาความปลอดภัยของ ทสภ. อย่างเคร่งครัด
+      </label>
+    </div>
+
+    <button type="submit" id="btnSubmit" class="btn">บันทึกข้อมูลลงทะเบียน</button>
+  </form>
+</div>
+
+<script>
+  let lineUserId = '';
+  let itemIndex = 0;
+  let configData = {};
+  let existingCardImgUrl = '-';
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec"; 
+
+  window.onload = async function() {
+    await fetchConfig();
+
+    liff.init({ liffId: "ใส่_LIFF_ID_ในขั้นตอนถัดไป" }).then(async () => {
+      if (liff.isLoggedIn()) {
+        const profile = await liff.getProfile();
+        lineUserId = profile.userId;
+        await fetchUserData(lineUserId);
+      } else {
+        liff.login();
+      }
+    }).catch(err => {
+      console.error(err);
+      if(itemIndex === 0) addItem();
+    });
+  };
+
+  async function fetchConfig() {
+    try {
+      const res = await fetch(`${GAS_WEB_APP_URL}?action=getConfig`);
+      const data = await res.json();
+      if (data.status === "success") {
+        configData = data.config;
+        populateDropdown('title', configData.titles);
+      }
+    } catch(err) { console.error(err); }
+  }
+
+  async function fetchUserData(userId) {
+    try {
+      const res = await fetch(`${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${userId}`);
+      const data = await res.json();
+      if (data.status === "found") {
+        const user = data.userData;
+        document.getElementById('cardNumber').value = user.cardNumber || '';
+        document.getElementById('title').value = user.title || '';
+        document.getElementById('firstName').value = user.firstName || '';
+        document.getElementById('lastName').value = user.lastName || '';
+        document.getElementById('email').value = user.email || '';
+        document.getElementById('company').value = user.company || '';
+        document.getElementById('role').value = user.role || '';
+        document.getElementById('phone').value = user.phone || '';
+        existingCardImgUrl = user.cardImgUrl || '-';
+        
+        if(existingCardImgUrl !== '-') {
+          const imgPrev = document.getElementById('cardImgPreview');
+          imgPrev.src = existingCardImgUrl;
+          imgPrev.style.display = 'block';
+        }
+      }
+    } catch(err) { console.error(err); }
+    if(itemIndex === 0) addItem();
+  }
+
+  function populateDropdown(elemId, optionsList) {
+    const select = document.getElementById(elemId);
+    select.innerHTML = '<option value="">-- เลือกรายการ --</option>';
+    if(optionsList) {
+      optionsList.forEach(opt => {
+        select.innerHTML += `<option value="${opt}">${opt}</option>`;
+      });
+    }
+  }
+
+  function addItem() {
+    if (itemIndex >= 5) return alert("ลงทะเบียนได้สูงสุด 5 รายการเท่านั้นค่ะ");
+    itemIndex++;
+    const container = document.getElementById('itemsContainer');
+    const div = document.createElement('div');
+    div.className = 'item-block';
+    div.id = `item_${itemIndex}`;
+
+    let types = (itemIndex === 1) 
+      ? (configData.deviceTypes || []).filter(t => t.includes("โทรศัพท์") || t.includes("แท็บเล็ต") || t.includes("iPad"))
+      : (configData.deviceTypes || []);
+
+    let typeOpts = types.map(t => `<option value="${t}">${t}</option>`).join('');
+    let brandOpts = (configData.brands || []).map(b => `<option value="${b}">${b}</option>`).join('');
+    let colorOpts = (configData.colors || []).map(c => `<option value="${c}">${c}</option>`).join('');
+
+    div.innerHTML = `
+      <h4 style="margin-top:0;">รายการที่ ${itemIndex}</h4>
+      <div class="form-group"><label>1. ประเภทอุปกรณ์ *</label><select class="item-type" required><option value="">-- เลือกประเภท --</option>${typeOpts}</select></div>
+      <div class="form-group"><label>2. ยี่ห้อ *</label><select class="item-brand" required><option value="">-- เลือกรุ่น/ยี่ห้อ --</option>${brandOpts}</select></div>
+      <div class="form-group"><label>3. ระบุรุ่น / โมเดล *</label><input type="text" class="item-model" required placeholder="รุ่น / โมเดล"></div>
+      <div class="form-group"><label>4. หมายเลขซีเรียล (S/N) หรือ IMEI *</label><input type="text" class="item-serial" required placeholder="S/N หรือ IMEI"></div>
+      <div class="form-group"><label>5. สีของอุปกรณ์ *</label><select class="item-color" required><option value="">-- เลือกสี --</option>${colorOpts}</select></div>
+      <div class="form-group">
+        <label>6. ถ่ายรูปอุปกรณ์ (ถ้ามี)</label>
+        <input type="file" class="item-img" accept="image/*" onchange="previewImage(this, 'itemImgPrev_${itemIndex}')">
+        <img id="itemImgPrev_${itemIndex}" class="img-preview">
+      </div>
+    `;
+    container.appendChild(div);
+    if (itemIndex === 5) document.getElementById('btnAddItem').style.display = 'none';
+  }
+
+  function previewImage(input, previewId) {
+    const preview = document.getElementById(previewId);
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  async function getBase64(file) {
+    if (!file) return null;
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  }
+
+  document.getElementById('regForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const submitBtn = document.getElementById('btnSubmit');
+    submitBtn.disabled = true;
+    submitBtn.innerText = "กำลังอัปโหลดรูปและบันทึกข้อมูล...";
+
+    try {
+      const cardImgFile = document.getElementById('cardImg').files[0];
+      const cardImgBase64 = cardImgFile ? await getBase64(cardImgFile) : null;
+
+      const items = [];
+      for (let i = 1; i <= itemIndex; i++) {
+        const block = document.getElementById(`item_${i}`);
+        if (block) {
+          const itemImgFile = block.querySelector('.item-img').files[0];
+          const itemImgBase64 = itemImgFile ? await getBase64(itemImgFile) : null;
+          items.push({
+            type: block.querySelector('.item-type').value,
+            brand: block.querySelector('.item-brand').value,
+            model: block.querySelector('.item-model').value,
+            serial: block.querySelector('.item-serial').value,
+            color: block.querySelector('.item-color').value,
+            imgBase64: itemImgBase64
+          });
+        }
+      }
+
+      const payload = {
+        lineUserId: lineUserId,
+        cardNumber: document.getElementById('cardNumber').value.trim(),
+        title: document.getElementById('title').value,
+        firstName: document.getElementById('firstName').value.trim(),
+        lastName: document.getElementById('lastName').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        company: document.getElementById('company').value.trim(),
+        role: document.getElementById('role').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        cardImgBase64: cardImgBase64,
+        existingCardImgUrl: existingCardImgUrl,
+        items: items,
+        pdpaAccepted: document.getElementById('pdpa').checked
+      };
+
+      const res = await fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+      const data = await res.json();
+
+      if (data.status === "success") {
+        alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
+        if (typeof liff !== 'undefined' && liff.isInClient()) {
+          liff.closeWindow();
+        }
+      } else {
+        alert("เกิดข้อผิดพลาด: " + data.message);
+        submitBtn.disabled = false;
+        submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน";
+      }
+    } catch(err) {
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง");
+      console.error(err);
+      submitBtn.disabled = false;
+      submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน";
+    }
+  });
+</script>
+
+</body>
+</html>
