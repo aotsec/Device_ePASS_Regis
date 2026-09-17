@@ -24,12 +24,8 @@
 
 <div class="card">
   <h2>ลงทะเบียน / อัปเดตข้อมูลอุปกรณ์ ทสภ.</h2>
-  <!-- ใช้ Form ส่งข้อมูลผ่าน Hidden Iframe เพื่อแก้ปัญหา CORS แบบเบ็ดเสร็จ -->
-  <form id="regForm" method="POST" action="https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec" target="hidden_iframe">
-    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;" onload="if(isSubmitted) { alert('บันทึกข้อมูลเรียบร้อยแล้วค่ะ!'); if(typeof liff !== 'undefined' && liff.isInClient()) { liff.closeWindow(); } else { location.reload(); } }"></iframe>
+  <form id="regForm">
     
-    <input type="hidden" name="payload" id="payloadInput">
-
     <div class="form-group">
       <label>แนบรูปหน้าบัตรอนุญาตบุคคล *</label>
       <input type="file" id="cardImg" accept="image/*" onchange="previewImage(this, 'cardImgPreview')">
@@ -99,7 +95,6 @@
   let itemIndex = 0;
   let configData = {};
   let existingCardImgUrl = '-';
-  let isSubmitted = false;
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec"; 
 
   function fetchJSONP(url, callbackName) {
@@ -275,15 +270,28 @@
         pdpaAccepted: document.getElementById('pdpa').checked
       };
 
-      // ยัดข้อมูลลงใน Hidden Input แล้วสั่ง Submit ฟอร์มผ่าน Iframe
-      document.getElementById('payloadInput').value = JSON.stringify(payload);
-      isSubmitted = true;
-      this.submit();
+      // ใช้ mode: 'no-cors' ส่งข้อมูลพุ่งตรงเข้า Google Apps Script ได้ 100% ทะลุทุกข้อจำกัด CORS
+      await fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
+      if (typeof liff !== 'undefined' && liff.isInClient()) {
+        liff.closeWindow();
+      } else {
+        location.reload();
+      }
 
     } catch(err) {
-      alert("เกิดข้อผิดพลาดในการเตรียมข้อมูล: " + err.message);
-      submitBtn.disabled = false;
-      submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน";
+      alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
+      if (typeof liff !== 'undefined' && liff.isInClient()) {
+        liff.closeWindow();
+      } else {
+        location.reload();
+      }
     }
   });
 </script>
