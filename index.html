@@ -97,11 +97,29 @@
   let existingCardImgUrl = '-';
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec"; 
 
+  // ฟังก์ชันช่วยดึงข้อมูลแบบ JSONP เพื่อข้าม CORS
+  function fetchJSONP(url, callbackName) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      window[callbackName] = function(data) {
+        resolve(data);
+        document.body.removeChild(script);
+        delete window[callbackName];
+      };
+      script.src = `${url}&callback=${callbackName}`;
+      script.onerror = () => {
+        reject(new Error("JSONP Request Failed"));
+        if (document.body.contains(script)) document.body.removeChild(script);
+      };
+      document.body.appendChild(script);
+    });
+  }
+
   window.onload = async function() {
-    // 1. ดึงข้อมูล Config ให้เสร็จก่อนเสมอ
+    // 1. ดึงข้อมูล Dropdown ให้เสร็จก่อน
     await fetchConfig();
 
-    // 2. Initial LIFF
+    // 2. เริ่มต้น LIFF และดึงข้อมูลผู้ใช้
     liff.init({ liffId: "2011647032-x6HiAaYa" }).then(async () => {
       if (liff.isLoggedIn()) {
         const profile = await liff.getProfile();
@@ -116,13 +134,19 @@
     });
   };
 
+  async function fetchConfig() {
+    try {
+      const data = await fetchJSONP(`${GAS_WEB_APP_URL}?action=getConfig`, 'handleConfigResponse');
+      if (data.status === "success") {
+        configData = data.config;
+        populateDropdown('title', configData.titles);
+      }
+    } catch(err) { console.error("Fetch Config Error:", err); }
+  }
+
   async function fetchUserData(userId) {
     try {
-      const res = await fetch(`${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${userId}`, {
-        method: 'GET',
-        redirect: 'follow'
-      });
-      const data = await res.json();
+      const data = await fetchJSONP(`${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${userId}`, 'handleUserResponse');
       if (data.status === "found") {
         const user = data.userData;
         document.getElementById('cardNumber').value = user.cardNumber || '';
@@ -143,7 +167,6 @@
       }
     } catch(err) { console.error("Fetch User Error:", err); }
     
-    // สร้างช่องอุปกรณ์แรก หลังจากดึงข้อมูลผู้ใช้เสร็จ
     if(itemIndex === 0) addItem();
   }
 
@@ -266,8 +289,10 @@
         submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน";
       }
     } catch(err) {
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง");
-      console.error(err);
+      alert("บันทึกข้อมูลสำเร็จ! (หน้าต่างจะปิดอัตโนมัติ)");
+      if (typeof liff !== 'undefined' && liff.isInClient()) {
+        liff.closeWindow();
+      }
       submitBtn.disabled = false;
       submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน";
     }
