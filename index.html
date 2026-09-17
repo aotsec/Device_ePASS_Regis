@@ -98,8 +98,10 @@
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec"; 
 
   window.onload = async function() {
+    // 1. ดึงข้อมูล Config ให้เสร็จก่อนเสมอ
     await fetchConfig();
 
+    // 2. Initial LIFF
     liff.init({ liffId: "2011647032-x6HiAaYa" }).then(async () => {
       if (liff.isLoggedIn()) {
         const profile = await liff.getProfile();
@@ -113,23 +115,6 @@
       if(itemIndex === 0) addItem();
     });
   };
-
-  async function fetchConfig() {
-    try {
-      // เพิ่ม redirect: 'follow' เพื่อให้ดึงข้อมูลข้ามโดเมนได้ถูกต้อง
-      const res = await fetch(`${GAS_WEB_APP_URL}?action=getConfig`, {
-        method: 'GET',
-        redirect: 'follow'
-      });
-      const data = await res.json();
-      if (data.status === "success") {
-        configData = data.config;
-        populateDropdown('title', configData.titles);
-      }
-    } catch(err) { 
-      console.error("Fetch Config Error:", err); 
-    }
-  }
 
   async function fetchUserData(userId) {
     try {
@@ -157,6 +142,8 @@
         }
       }
     } catch(err) { console.error("Fetch User Error:", err); }
+    
+    // สร้างช่องอุปกรณ์แรก หลังจากดึงข้อมูลผู้ใช้เสร็จ
     if(itemIndex === 0) addItem();
   }
 
