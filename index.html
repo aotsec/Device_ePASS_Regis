@@ -116,18 +116,27 @@
 
   async function fetchConfig() {
     try {
-      const res = await fetch(`${GAS_WEB_APP_URL}?action=getConfig`);
+      // เพิ่ม redirect: 'follow' เพื่อให้ดึงข้อมูลข้ามโดเมนได้ถูกต้อง
+      const res = await fetch(`${GAS_WEB_APP_URL}?action=getConfig`, {
+        method: 'GET',
+        redirect: 'follow'
+      });
       const data = await res.json();
       if (data.status === "success") {
         configData = data.config;
         populateDropdown('title', configData.titles);
       }
-    } catch(err) { console.error(err); }
+    } catch(err) { 
+      console.error("Fetch Config Error:", err); 
+    }
   }
 
   async function fetchUserData(userId) {
     try {
-      const res = await fetch(`${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${userId}`);
+      const res = await fetch(`${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${userId}`, {
+        method: 'GET',
+        redirect: 'follow'
+      });
       const data = await res.json();
       if (data.status === "found") {
         const user = data.userData;
@@ -147,7 +156,7 @@
           imgPrev.style.display = 'block';
         }
       }
-    } catch(err) { console.error(err); }
+    } catch(err) { console.error("Fetch User Error:", err); }
     if(itemIndex === 0) addItem();
   }
 
