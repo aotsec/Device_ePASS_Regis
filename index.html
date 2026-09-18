@@ -18,6 +18,8 @@
     .btn-add { background-color: #28a745; margin-bottom: 15px; }
     .pdpa-box { font-size: 13px; color: #555; background: #eee; padding: 10px; border-radius: 6px; margin-bottom: 15px; }
     .img-preview { max-width: 100%; height: 120px; object-fit: contain; margin-top: 5px; display: none; border: 1px solid #ddd; }
+    .status-msg { text-align:center; font-size:13px; color:#0056b3; margin-top:8px; min-height:18px; }
+    .file-size-hint { font-size:11px; color:#888; margin-top:3px; }
   </style>
 </head>
 <body>
@@ -25,11 +27,12 @@
 <div class="card">
   <h2>ลงทะเบียน / อัปเดตข้อมูลอุปกรณ์ ทสภ.</h2>
   <form id="regForm">
-    
+
     <div class="form-group">
       <label>แนบรูปหน้าบัตรอนุญาตบุคคล *</label>
       <input type="file" id="cardImg" accept="image/*" onchange="previewImage(this, 'cardImgPreview')">
       <img id="cardImgPreview" class="img-preview">
+      <div class="file-size-hint">ระบบจะบีบอัดรูปให้อัตโนมัติเพื่อความเร็วในการส่งข้อมูล</div>
     </div>
 
     <div class="form-group">
@@ -74,7 +77,7 @@
 
     <hr style="margin: 20px 0;">
     <h3 style="font-size:16px; color:#003366;">รายการลงทะเบียนอุปกรณ์ (สูงสุด 5 รายการ)</h3>
-    
+
     <div id="itemsContainer"></div>
 
     <button type="button" id="btnAddItem" class="btn btn-add" onclick="addItem()">+ เพิ่มรายการอุปกรณ์</button>
@@ -87,6 +90,7 @@
     </div>
 
     <button type="submit" id="btnSubmit" class="btn">บันทึกข้อมูลลงทะเบียน</button>
+    <div id="statusMsg" class="status-msg"></div>
   </form>
 </div>
 
@@ -95,24 +99,36 @@
   let itemIndex = 0;
   let configData = {};
   let existingCardImgUrl = '-';
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec"; 
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec";
 
-  // ฟังก์ชัน JSONP ป้องกันชื่อฟังก์ชันชนกันด้วยสุ่มรหัส
-  function fetchJSONP(url) {
+  // ตั้งค่าการบีบอัดรูปภาพ
+  const IMG_MAX_DIMENSION = 1280;   // ความกว้าง/สูงสูงสุดหลังย่อ (px)
+  const IMG_TARGET_KB = 400;        // ขนาดเป้าหมายต่อรูปหลังบีบอัด (KB)
+  const FETCH_TIMEOUT_MS = 45000;   // เวลารอสูงสุดก่อนถือว่า timeout (ms)
+
+  function setStatus(msg) {
+    document.getElementById('statusMsg').innerText = msg || '';
+  }
+
+  // ---------- JSONP helper (ใช้กับ GET เท่านั้น เพื่อเลี่ยงปัญหา CORS) ----------
+  function fetchJSONP(url, callbackName) {
     return new Promise((resolve, reject) => {
-      const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
       const script = document.createElement('script');
-      window[callbackName] = function(data) {
-        resolve(data);
-        document.body.removeChild(script);
-        delete window[callbackName];
-      };
-      script.src = `${url}&callback=${callbackName}`;
-      script.onerror = () => {
-        reject(new Error("JSONP Request Failed"));
+      const timer = setTimeout(() => {
+        reject(new Error("หมดเวลาเชื่อมต่อ (JSONP timeout)"));
+        cleanup();
+      }, 15000);
+      function cleanup() {
         if (document.body.contains(script)) document.body.removeChild(script);
         delete window[callbackName];
+        clearTimeout(timer);
+      }
+      window[callbackName] = function(data) {
+        resolve(data);
+        cleanup();
       };
+      script.src = `${url}&callback=${callbackName}`;
+      script.onerror = () => { reject(new Error("JSONP Request Failed")); cleanup(); };
       document.body.appendChild(script);
     });
   }
@@ -128,24 +144,29 @@
         liff.login();
       }
     }).catch(err => {
-      console.error(err);
-      if(itemIndex === 0) addItem();
+      console.error("LIFF init error:", err);
+      if (itemIndex === 0) addItem();
     });
   };
 
   async function fetchConfig() {
     try {
-      const data = await fetchJSONP(`${GAS_WEB_APP_URL}?action=getConfig`);
+      const data = await fetchJSONP(`${GAS_WEB_APP_URL}?action=getConfig`, 'handleConfigResponse');
       if (data.status === "success") {
         configData = data.config;
         populateDropdown('title', configData.titles);
+      } else {
+        console.error("Config error:", data.message);
       }
-    } catch(err) { console.error("Fetch Config Error:", err); }
+    } catch (err) {
+      console.error("Fetch Config Error:", err);
+      setStatus("โหลดรายการตัวเลือกไม่สำเร็จ กรุณารีเฟรชหน้าใหม่");
+    }
   }
 
   async function fetchUserData(userId) {
     try {
-      const data = await fetchJSONP(`${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${userId}`);
+      const data = await fetchJSONP(`${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${userId}`, 'handleUserResponse');
       if (data.status === "found") {
         const user = data.userData;
         document.getElementById('cardNumber').value = user.cardNumber || '';
@@ -157,21 +178,23 @@
         document.getElementById('role').value = user.role || '';
         document.getElementById('phone').value = user.phone || '';
         existingCardImgUrl = user.cardImgUrl || '-';
-        
-        if(existingCardImgUrl !== '-') {
+
+        if (existingCardImgUrl !== '-') {
           const imgPrev = document.getElementById('cardImgPreview');
           imgPrev.src = existingCardImgUrl;
           imgPrev.style.display = 'block';
         }
       }
-    } catch(err) { console.error("Fetch User Error:", err); }
-    if(itemIndex === 0) addItem();
+    } catch (err) {
+      console.error("Fetch User Error:", err);
+    }
+    if (itemIndex === 0) addItem();
   }
 
   function populateDropdown(elemId, optionsList) {
     const select = document.getElementById(elemId);
     select.innerHTML = '<option value="">-- เลือกรายการ --</option>';
-    if(optionsList) {
+    if (optionsList) {
       optionsList.forEach(opt => {
         select.innerHTML += `<option value="${opt}">${opt}</option>`;
       });
@@ -186,7 +209,7 @@
     div.className = 'item-block';
     div.id = `item_${itemIndex}`;
 
-    let types = (itemIndex === 1) 
+    let types = (itemIndex === 1)
       ? (configData.deviceTypes || []).filter(t => t.includes("โทรศัพท์") || t.includes("แท็บเล็ต") || t.includes("iPad"))
       : (configData.deviceTypes || []);
 
@@ -220,32 +243,94 @@
     }
   }
 
-  async function getBase64(file) {
+  // ---------- บีบอัดรูปภาพก่อนแปลงเป็น Base64 ----------
+  // ย่อขนาดภาพด้วย canvas แล้วลด quality วนจนกว่าจะได้ขนาดไม่เกินเป้าหมาย
+  function loadImageFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function drawToDataUrl(img, quality) {
+    let { width, height } = img;
+    if (width > IMG_MAX_DIMENSION || height > IMG_MAX_DIMENSION) {
+      const ratio = Math.min(IMG_MAX_DIMENSION / width, IMG_MAX_DIMENSION / height);
+      width = Math.round(width * ratio);
+      height = Math.round(height * ratio);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', quality);
+  }
+
+  async function compressImageFile(file) {
     if (!file) return null;
+    try {
+      const img = await loadImageFromFile(file);
+      let quality = 0.8;
+      let dataUrl = drawToDataUrl(img, quality);
+      let sizeKB = (dataUrl.length * 0.75) / 1024; // ประมาณขนาดจริงจาก base64 length
+
+      while (sizeKB > IMG_TARGET_KB && quality > 0.3) {
+        quality -= 0.1;
+        dataUrl = drawToDataUrl(img, quality);
+        sizeKB = (dataUrl.length * 0.75) / 1024;
+      }
+      return dataUrl;
+    } catch (err) {
+      console.error("Compress image error, fallback to original file:", err);
+      // ถ้าบีบอัดไม่สำเร็จ ใช้ไฟล์ต้นฉบับแทน (กันฟอร์มพังทั้งหมด)
+      return await getBase64Raw(file);
+    }
+  }
+
+  function getBase64Raw(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
+      reader.onerror = reject;
     });
   }
 
-  document.getElementById('regForm').addEventListener('submit', async function(e) {
+  // ---------- fetch พร้อม timeout กันค้าง ----------
+  function fetchWithTimeout(url, options, timeoutMs) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, { ...options, signal: controller.signal })
+      .finally(() => clearTimeout(timer));
+  }
+
+  document.getElementById('regForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     const submitBtn = document.getElementById('btnSubmit');
     submitBtn.disabled = true;
-    submitBtn.innerText = "กำลังอัปโหลดรูปและบันทึกข้อมูล...";
 
     try {
+      // 1. บีบอัดรูปบัตร
+      setStatus("กำลังเตรียมรูปหน้าบัตร...");
       const cardImgFile = document.getElementById('cardImg').files[0];
-      const cardImgBase64 = cardImgFile ? await getBase64(cardImgFile) : null;
+      const cardImgBase64 = cardImgFile ? await compressImageFile(cardImgFile) : null;
 
+      // 2. บีบอัดรูปอุปกรณ์แต่ละรายการ
       const items = [];
       for (let i = 1; i <= itemIndex; i++) {
         const block = document.getElementById(`item_${i}`);
         if (block) {
+          setStatus(`กำลังเตรียมรูปอุปกรณ์รายการที่ ${i}...`);
           const itemImgFile = block.querySelector('.item-img').files[0];
-          const itemImgBase64 = itemImgFile ? await getBase64(itemImgFile) : null;
+          const itemImgBase64 = itemImgFile ? await compressImageFile(itemImgFile) : null;
           items.push({
             type: block.querySelector('.item-type').value,
             brand: block.querySelector('.item-brand').value,
@@ -273,27 +358,54 @@
         pdpaAccepted: document.getElementById('pdpa').checked
       };
 
-      // ส่งข้อมูล POST แบบ no-cors ข้ามโดเมน
-      await fetch(GAS_WEB_APP_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
-      if (typeof liff !== 'undefined' && liff.isInClient()) {
-        liff.closeWindow();
-      } else {
-        location.reload();
+      // เช็คขนาด payload รวม ก่อนส่งจริง (กันเคสรูปใหญ่ผิดปกติ)
+      const payloadStr = JSON.stringify(payload);
+      const payloadSizeMB = (payloadStr.length / (1024 * 1024)).toFixed(2);
+      console.log(`Payload size: ${payloadSizeMB} MB`);
+      if (payloadStr.length > 15 * 1024 * 1024) {
+        throw new Error(`ขนาดข้อมูลใหญ่เกินไป (${payloadSizeMB} MB) กรุณาลดจำนวนรูปภาพ หรือถ่ายรูปใหม่`);
       }
 
-    } catch(err) {
-    console.error("Submit Error:", err);
-    alert("เกิดข้อผิดพลาดจริง: " + err.message);
-    submitBtn.disabled = false;
-    submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน";
-  }
+      setStatus("กำลังส่งข้อมูล กรุณารอสักครู่...");
+      submitBtn.innerText = "กำลังบันทึก...";
+
+      // สำคัญ: ไม่ตั้ง header 'Content-Type' เอง เพื่อให้ browser ใช้ text/plain
+      // ซึ่งเป็น "simple request" หลีกเลี่ยง CORS preflight (OPTIONS) ที่ GAS ไม่รองรับ
+      const res = await fetchWithTimeout(GAS_WEB_APP_URL, {
+        method: 'POST',
+        body: payloadStr,
+        redirect: 'follow'
+      }, FETCH_TIMEOUT_MS);
+
+      if (!res.ok) {
+        throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${res.status})`);
+      }
+
+      const data = await res.json();
+
+      if (data.status === "success") {
+        setStatus("");
+        alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
+        if (typeof liff !== 'undefined' && liff.isInClient()) {
+          liff.closeWindow();
+        }
+      } else {
+        throw new Error(data.message || "ไม่ทราบสาเหตุ");
+      }
+
+    } catch (err) {
+      // แสดง error จริงเสมอ ห้ามขึ้นข้อความ "สำเร็จ" หลอกผู้ใช้เด็ดขาด
+      console.error("Submit Error:", err);
+      let userMsg = err.message || err.toString();
+      if (err.name === 'AbortError') {
+        userMsg = "หมดเวลาเชื่อมต่อ เครือข่ายอาจช้าหรือไม่เสถียร กรุณาลองใหม่อีกครั้ง";
+      }
+      setStatus("");
+      alert("เกิดข้อผิดพลาด: " + userMsg + "\n\nกรุณาลองใหม่อีกครั้ง หากยังไม่สำเร็จ ลองลดขนาด/จำนวนรูปภาพ");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน";
+    }
   });
 </script>
 
