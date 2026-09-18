@@ -42,6 +42,9 @@
   </div>
 
   <div id="statusBadgeContainer"></div>
+  
+  <!-- คอนเทนเนอร์สำหรับปุ่ม Device ePASS (ซ่อนไว้ก่อน) -->
+  <div id="ePassContainer" style="display: none; margin-bottom: 20px; text-align: center;"></div>
 
   <form id="regForm">
     <div class="form-group">
@@ -232,10 +235,20 @@
 
         renderStatusBadge(user.status);
         
+        // --- ส่วนแสดงปุ่ม Device ePASS ถ้าได้รับอนุมัติ ---
+        const ePassContainer = document.getElementById('ePassContainer');
+        if ((user.status === 'อนุมัติ' || user.status === 'อนุมัติแล้ว') && user.ePassUrl && user.ePassUrl !== '-') {
+          ePassContainer.innerHTML = `<a href="${user.ePassUrl}" target="_blank" class="btn" style="background-color: #28a745; display: inline-block; text-decoration: none; padding: 12px 20px; box-sizing: border-box; width: 100%;">✅ ดูบัตร Device ePASS ของคุณ</a>`;
+          ePassContainer.style.display = 'block';
+        } else {
+          ePassContainer.style.display = 'none';
+        }
+        // ------------------------------------------
+
         currentStoredItems = [user.item1, user.item2, user.item3, user.item4, user.item5].filter(i => i && i !== '-');
         renderStoredItemsView(user.status);
 
-        if (user.status !== "อนุมัติแล้ว") {
+        if (user.status !== "อนุมัติแล้ว" && user.status !== "อนุมัติ") {
           document.getElementById('btnEdit').style.display = 'block';
         }
       } else {
@@ -250,12 +263,13 @@
     enableEditing();
     addNewItemBlock();
     document.getElementById('btnEdit').style.display = 'none';
+    document.getElementById('ePassContainer').style.display = 'none';
   }
 
   function renderStatusBadge(status) {
     const container = document.getElementById('statusBadgeContainer');
     let badgeClass = 'status-pending';
-    if (status === 'อนุมัติแล้ว') badgeClass = 'status-approved';
+    if (status === 'อนุมัติ' || status === 'อนุมัติแล้ว') badgeClass = 'status-approved';
     else if (status && status.startsWith('ไม่ผ่าน')) badgeClass = 'status-rejected';
 
     container.innerHTML = `<div class="status-badge ${badgeClass}">สถานะปัจจุบัน: ${status}</div>`;
@@ -268,7 +282,7 @@
     currentStoredItems.forEach((itemStr, index) => {
       const div = document.createElement('div');
       div.className = 'item-block';
-      let deleteBtnHTML = (status !== "อนุมัติแล้ว") ? `<button type="button" class="btn-remove" onclick="removeStoredItemIndex(${index})">🗑️ ลบรายการนี้</button>` : '';
+      let deleteBtnHTML = (status !== "อนุมัติแล้ว" && status !== "อนุมัติ") ? `<button type="button" class="btn-remove" onclick="removeStoredItemIndex(${index})">🗑️ ลบรายการนี้</button>` : '';
       div.innerHTML = `<span style="font-size:14px; font-weight:500;">รายการที่ ${index + 1}: ${itemStr}</span> ${deleteBtnHTML}`;
       container.appendChild(div);
     });
@@ -496,7 +510,7 @@
       
       const res = await fetchWithTimeout(GAS_WEB_APP_URL, { method: 'POST', body: payloadStr, redirect: 'follow' }, FETCH_TIMEOUT_MS);
       if (!res.ok) throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด`);
-      const data = await res.json(); // <--- แก้ไขจุดตายตรงนี้เรียบร้อยค่ะ!
+      const data = await res.json(); 
 
       if (data.status === "success") {
         setStatus(""); alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
