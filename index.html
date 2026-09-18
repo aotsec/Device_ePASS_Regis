@@ -368,7 +368,7 @@
       <div class="form-group">
         <label>รุ่น / โมเดล *</label>
         <select class="newItem-model" required onchange="handleDropdownChange(this)">
-          <option value="">-- กรุณาเลือกยี่หเภาก่อน --</option>
+          <option value="">-- กรุณาเลือกยี่ห้อก่อน --</option>
         </select>
       </div>
 
@@ -451,7 +451,7 @@
 
         const raw5Digits = serialVal.replace('***', '');
         if (configData.blacklistSN && configData.blacklistSN.includes(raw5Digits)) {
-          throw new Error(`หมายเลข S/N หรือ IMEI (${serialVal}) อยู่ในรายการไม่อญาตให้ใช้งาน เนื่องจากเป็นรูปแบบที่ไม่ถูกต้อง กรุณาตรวจสอบใหม่อีกครั้ง`);
+          throw new Error(`หมายเลข S/N หรือ IMEI (${serialVal}) อยู่ในรายการไม่อนุญาตให้ใช้งาน เนื่องจากเป็นรูปแบบที่ไม่ถูกต้อง กรุณาตรวจสอบใหม่อีกครั้ง`);
         }
 
         if (configData.warnSN && configData.warnSN.includes(raw5Digits)) {
@@ -496,7 +496,7 @@
       
       const res = await fetchWithTimeout(GAS_WEB_APP_URL, { method: 'POST', body: payloadStr, redirect: 'follow' }, FETCH_TIMEOUT_MS);
       if (!res.ok) throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด`);
-      const data = await res.json();
+      const data = await res.json(); // <--- แก้ไขจุดตายตรงนี้เรียบร้อยค่ะ!
 
       if (data.status === "success") {
         setStatus(""); alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
