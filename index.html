@@ -289,13 +289,11 @@
       }
 
     } catch(err) {
-      alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
-      if (typeof liff !== 'undefined' && liff.isInClient()) {
-        liff.closeWindow();
-      } else {
-        location.reload();
-      }
-    }
+    console.error("Submit Error:", err);
+    alert("เกิดข้อผิดพลาดจริง: " + err.message);
+    submitBtn.disabled = false;
+    submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน";
+  }
   });
 </script>
 
