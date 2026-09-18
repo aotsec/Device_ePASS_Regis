@@ -51,7 +51,7 @@
     
     <div class="form-group">
       <label>หมายเลขบัตรอนุญาตบุคคล *</label>
-      <input type="text" id="cardNumber" required placeholder="เช่น SUV/12345/12345/67" disabled oninput="this.value = this.value.toUpperCase()">
+      <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" disabled oninput="this.value = this.value.toUpperCase()">
     </div>
 
     <div class="form-group">
@@ -96,7 +96,7 @@
 
     <div id="itemsContainer"></div>
 
-    <button type="button" id="btnAddItem" class="btn btn-add" style="display:none;" onclick="addItem()">+ เพิ่มรายการอุปกรณ์</button>
+    <button type="button" id="btnAddItem" class="btn btn-add" style="display:none;" onclick="addNewItemBlock()">+ เพิ่มรายการอุปกรณ์</button>
 
     <div class="pdpa-box">
       <input type="checkbox" id="pdpa" required style="width: auto;" disabled>
@@ -116,6 +116,7 @@
   let configData = {};
   let existingCardImgUrl = '-';
   let isRegistered = false;
+  let currentStoredItems = []; // เก็บอาเรย์อุปกรณ์เดิมที่ดึงมาจากชีต
   
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec";
   const IMG_MAX_DIMENSION = 1280, IMG_TARGET_KB = 400, FETCH_TIMEOUT_MS = 45000;
@@ -195,13 +196,12 @@
           const imgPrev = document.getElementById('cardImgPreview'); imgPrev.src = existingCardImgUrl; imgPrev.style.display = 'block';
         }
 
-        // แสดง Badge สถานะ
         renderStatusBadge(user.status);
+        
+        // เก็บรายการอุปกรณ์เดิม
+        currentStoredItems = [user.item1, user.item2, user.item3, user.item4, user.item5].filter(i => i && i !== '-');
+        renderStoredItemsView(user.status);
 
-        // แสดงรายการอุปกรณ์แบบ Text พร้อมปุ่มลบ (ถ้าสถานะยังไม่อนุมัติ)
-        renderItemsAsText([user.item1, user.item2, user.item3, user.item4, user.item5], user.status);
-
-        // จัดการปุ่ม Edit
         if (user.status !== "อนุมัติแล้ว") {
           document.getElementById('btnEdit').style.display = 'block';
         }
@@ -213,8 +213,9 @@
 
   function setupNewRegistration() {
     isRegistered = false;
+    currentStoredItems = [];
     enableEditing();
-    addItem();
+    addNewItemBlock();
     document.getElementById('btnEdit').style.display = 'none';
   }
 
@@ -227,27 +228,58 @@
     container.innerHTML = `<div class="status-badge ${badgeClass}">สถานะปัจจุบัน: ${status}</div>`;
   }
 
-  function renderItemsAsText(itemsArr, status) {
+  function renderStoredItemsView(status) {
     const container = document.getElementById('itemsContainer');
     container.innerHTML = '';
     
-    itemsArr.forEach((itemStr, index) => {
-      if (itemStr && itemStr !== '-') {
-        const div = document.createElement('div');
-        div.className = 'item-block';
-        
-        let deleteBtnHTML = (status !== "อนุมัติแล้ว") ? `<button type="button" class="btn-remove" onclick="removeStoredItem(${index})">🗑️ ลบรายการนี้</button>` : '';
-        
-        div.innerHTML = `<span style="font-size:14px; font-weight:500;">รายการที่ ${index + 1}: ${itemStr}</span> ${deleteBtnHTML}`;
-        container.appendChild(div);
-      }
+    currentStoredItems.forEach((itemStr, index) => {
+      const div = document.createElement('div');
+      div.className = 'item-block';
+      let deleteBtnHTML = (status !== "อนุมัติแล้ว") ? `<button type="button" class="btn-remove" onclick="removeStoredItemIndex(${index})">🗑️ ลบรายการนี้</button>` : '';
+      div.innerHTML = `<span style="font-size:14px; font-weight:500;">รายการที่ ${index + 1}: ${itemStr}</span> ${deleteBtnHTML}`;
+      container.appendChild(div);
     });
+  }
 
-    if (status !== "อนุมัติแล้ว") {
-      const activeCount = itemsArr.filter(i => i && i !== '-').length;
-      if (activeCount < 5) {
-        document.getElementById('btnAddItem').style.display = 'block';
+  // ฟังก์ชันลบรายการอุปกรณ์เดิมแล้วส่งอัปเดตอัตโนมัติทันที
+  async function removeStoredItemIndex(index) {
+    if (currentStoredItems.length <= 1) {
+      alert("ไม่สามารถลบจนหมดได้ ระบบต้องมีอุปกรณ์อย่างน้อย 1 รายการค่ะ");
+      return;
+    }
+    if (!confirm("คุณต้องการลบรายการนี้ใช่หรือไม่? ระบบจะบันทึกการเปลี่ยนแปลงทันที")) return;
+
+    currentStoredItems.splice(index, 1);
+    
+    // เตรียมส่งข้อมูลอัปเดตทันที
+    try {
+      setStatus("กำลังอัปเดตรายการ...");
+      const payload = {
+        lineUserId: lineUserId,
+        cardNumber: document.getElementById('cardNumber').value.trim().toUpperCase(),
+        title: getActualValue(document.getElementById('title')),
+        firstName: document.getElementById('firstName').value.trim(),
+        lastName: document.getElementById('lastName').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        company: document.getElementById('company').value.trim(),
+        role: document.getElementById('role').value.trim(),
+        phone: "'" + document.getElementById('phone').value.trim(),
+        existingCardImgUrl: existingCardImgUrl,
+        itemsRaw: currentStoredItems, // ส่งอาเรย์สตริงเดิมที่เหลืออยู่
+        pdpaAccepted: document.getElementById('pdpa').checked
+      };
+
+      const res = await fetchWithTimeout(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' }, FETCH_TIMEOUT_MS);
+      const data = await res.json();
+      if (data.status === "success") {
+        alert("ลบรายการเรียบร้อยแล้วค่ะ!");
+        location.reload();
+      } else {
+        throw new Error(data.message);
       }
+    } catch (err) {
+      alert("เกิดข้อผิดพลาด: " + err.message);
+      setStatus("");
     }
   }
 
@@ -256,9 +288,12 @@
     inputs.forEach(input => input.disabled = false);
     document.getElementById('btnEdit').style.display = 'none';
     document.getElementById('btnSubmit').style.display = 'block';
-    if (document.querySelectorAll('.item-block').length < 5) {
-      document.getElementById('btnAddItem').style.display = 'block';
-    }
+    
+    // แปลงมุมมองอุปกรณ์เป็นแบบฟอร์มให้กรอกเพิ่มได้
+    const container = document.getElementById('itemsContainer');
+    container.innerHTML = '';
+    currentStoredItems = []; // เคลียร์เพื่อเริ่มฟอร์มใหม่
+    addNewItemBlock();
   }
 
   function populateDropdown(elemId, optionsList) {
@@ -266,7 +301,7 @@
     if (optionsList) optionsList.forEach(opt => { select.innerHTML += `<option value="${opt}">${opt}</option>`; });
   }
 
-  function addItem() {
+  function addNewItemBlock() {
     const currentCount = document.querySelectorAll('.item-block').length;
     if (currentCount >= 5) return alert("ลงทะเบียนได้สูงสุด 5 รายการเท่านั้นค่ะ");
     
@@ -279,12 +314,12 @@
     let colorOpts = (configData.colors || []).map(c => `<option value="${c}">${c}</option>`).join('');
 
     div.innerHTML = `
-      <h4 style="margin-top:0;">รายการใหม่ <button type="button" class="btn-remove" style="float:right;" onclick="this.closest('.item-block').remove(); updateAddButton();">🗑️ ลบ</button></h4>
-      <div class="form-group"><label>ประเภทอุปกรณ์ *</label><select class="item-type" required onchange="handleDropdownChange(this)"><option value="">-- เลือกประเภท --</option>${typeOpts}</select></div>
-      <div class="form-group"><label>ยี่ห้อ *</label><select class="item-brand" required onchange="handleDropdownChange(this)"><option value="">-- เลือกรุ่น/ยี่ห้อ --</option>${brandOpts}</select></div>
-      <div class="form-group"><label>รุ่น / โมเดล *</label><input type="text" class="item-model" required placeholder="รุ่น / โมเดล"></div>
-      <div class="form-group"><label>S/N หรือ IMEI *</label><input type="text" class="item-serial" required placeholder="S/N หรือ IMEI"></div>
-      <div class="form-group"><label>สี *</label><select class="item-color" required onchange="handleDropdownChange(this)"><option value="">-- เลือกสี --</option>${colorOpts}</select></div>
+      <h4 style="margin-top:0; width:100%;">รายการใหม่ <button type="button" class="btn-remove" style="float:right;" onclick="this.closest('.item-block').remove(); updateAddButton();">🗑️ ลบ</button></h4>
+      <div class="form-group" style="width:100%;"><label>ประเภทอุปกรณ์ *</label><select class="item-type" required onchange="handleDropdownChange(this)"><option value="">-- เลือกประเภท --</option>${typeOpts}</select></div>
+      <div class="form-group" style="width:100%;"><label>ยี่ห้อ *</label><select class="item-brand" required onchange="handleDropdownChange(this)"><option value="">-- เลือกรุ่น/ยี่ห้อ --</option>${brandOpts}</select></div>
+      <div class="form-group" style="width:100%;"><label>รุ่น / โมเดล *</label><input type="text" class="item-model" required placeholder="รุ่น / โมเดล"></div>
+      <div class="form-group" style="width:100%;"><label>S/N หรือ IMEI *</label><input type="text" class="item-serial" required placeholder="S/N หรือ IMEI"></div>
+      <div class="form-group" style="width:100%;"><label>สี *</label><select class="item-color" required onchange="handleDropdownChange(this)"><option value="">-- เลือกสี --</option>${colorOpts}</select></div>
     `;
     document.getElementById('itemsContainer').appendChild(div);
     updateAddButton();
@@ -293,14 +328,6 @@
   function updateAddButton() {
     const count = document.querySelectorAll('.item-block').length;
     document.getElementById('btnAddItem').style.display = (count >= 5) ? 'none' : 'block';
-  }
-
-  async function removeStoredItem(index) {
-    if (!confirm("คุณต้องการลบรายการนี้ใช่หรือไม่? ข้อมูลจะถูกบันทึกทันที")) return;
-    // ดึงข้อมูลปัจจุบันส่งอัปเดตเพื่อลบรายการออก
-    // ส่งข้อมูลแบบด่วนผ่าน doPost
-    alert("ระบบกำลังลบรายการ...");
-    location.reload();
   }
 
   function previewImage(input, previewId) {
@@ -355,8 +382,20 @@
 
     try {
       const cardNumberVal = document.getElementById('cardNumber').value.trim().toUpperCase();
-      if (!/^\d{6}\/\d{5}\/\d{2}$/.test(cardNumberVal) && !/^(SUV\vert{}DMK\vert{}CEI\vert{}CNX\vert{}HKT\vert{}HDY)\/\d{5}\/\d{5}\/\d{2}$/.test(cardNumberVal) && !/^(SUV|DMK|CEI|CNX|HKT|HDY)\d{6}\/\d{5}[A-Z]$/.test(cardNumberVal) && !/^(SUV\vert{}DMK\vert{}CEI\vert{}CNX\vert{}HKT\vert{}HDY)\/\d{8}\/\d{5}\/\d{2}$/.test(cardNumberVal)) {
-        throw new Error("รูปแบบ 'หมายเลขบัตร' ไม่ถูกต้อง");
+      
+      // คืนค่าฟังก์ชันตรวจสอบรูปแบบหมายเลขบัตรที่ถูกต้องและครบถ้วนตามที่คุณกำหนด
+      function isValidCardIdFormat(cardId) {
+        const patterns = [
+          /^\d{6}\/\d{5}\/\d{2}$/,
+          /^(SUV|DMK|CEI|CNX|HKT|HDY)\/\d{5}\/\d{5}\/\d{2}$/,
+          /^(SUV|DMK|CEI|CNX|HKT|HDY)\d{6}\/\d{5}[A-Z]$/,
+          /^(SUV|DMK|CEI|CNX|HKT|HDY)\/\d{8}\/\d{5}\/\d{2}$/
+        ];
+        return patterns.some(p => p.test(cardId));
+      }
+
+      if (!isValidCardIdFormat(cardNumberVal)) {
+        throw new Error("รูปแบบ 'หมายเลขบัตรอนุญาต' ไม่ถูกต้อง\nกรุณาตรวจสอบให้ตรงกับหน้าบัตร (เช่น SUV/17330/00807/68)");
       }
       
       const firstNameVal = document.getElementById('firstName').value.trim();
@@ -372,15 +411,18 @@
       const phoneVal = document.getElementById('phone').value.trim();
       if (!/^0[689]\d{8}$/.test(phoneVal)) throw new Error("รูปแบบ 'เบอร์โทรศัพท์' ไม่ถูกต้อง");
 
+      // ตรวจสอบว่าต้องมีอย่างน้อย 1 อุปกรณ์ก่อนบันทึก
+      const blocks = document.querySelectorAll('.item-block');
+      if (blocks.length === 0) {
+        throw new Error("กรุณากรอกข้อมูลและเพิ่มรายการอุปกรณ์อย่างน้อย 1 รายการค่ะ");
+      }
+
       setStatus("กำลังประมวลผล...");
       const cardImgFile = document.getElementById('cardImg').files[0];
       const cardImgBase64 = cardImgFile ? await compressImageFile(cardImgFile) : null;
 
-      const blocks = document.querySelectorAll('.item-block');
       const items = [];
-      
       blocks.forEach(block => {
-        // ตรวจสอบว่าเป็น block ของใหม่ที่สร้างเพิ่มหรือไม่
         const typeSelect = block.querySelector('.item-type');
         if (typeSelect) {
           items.push({
