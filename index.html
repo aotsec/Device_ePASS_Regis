@@ -147,13 +147,11 @@
     return selectElement.value;
   }
 
-  // อัปเดตรุ่น (Model) ตามแบรนด์ที่เลือก
   function updateModelDropdown(brandSelect) {
     const brandVal = brandSelect.value;
     const block = brandSelect.closest('.newItemBlock');
     const modelSelect = block.querySelector('.newItem-model');
     
-    // เคลียร์ค่ารุ่นเดิมและลบช่องอื่นๆ ถ้ามี
     modelSelect.innerHTML = '<option value="">-- เลือกรุ่น --</option>';
     let nextSibling = modelSelect.nextElementSibling;
     if (nextSibling && nextSibling.classList.contains('other-input')) nextSibling.remove();
@@ -451,7 +449,6 @@
           throw new Error("หมายเลข S/N หรือ IMEI ของอุปกรณ์ใหม่ต้องกรอกและแสดงผลเป็นเลขท้าย 5 หลักในรูปแบบ ***XXXXX ให้สมบูรณ์ค่ะ");
         }
 
-        // --- ระบบตรวจสอบ Blacklist และ Warn S/N ---
         const raw5Digits = serialVal.replace('***', '');
         if (configData.blacklistSN && configData.blacklistSN.includes(raw5Digits)) {
           throw new Error(`หมายเลข S/N หรือ IMEI (${serialVal}) อยู่ในรายการไม่อญาตให้ใช้งาน เนื่องจากเป็นรูปแบบที่ไม่ถูกต้อง กรุณาตรวจสอบใหม่อีกครั้ง`);
@@ -465,7 +462,6 @@
             return;
           }
         }
-        // ----------------------------------------
 
         const colorVal = getActualValue(block.querySelector('.newItem-color'));
         newlyAddedItems.push(`[ประเภท: ${typeVal}] [ยี่ห้อ: ${brandVal}] [รุ่น: ${modelVal}] [S/N: ${serialVal}] [สี: ${colorVal}]`);
@@ -496,11 +492,11 @@
       if (payloadStr.length > 15 * 1024 * 1024) throw new Error(`ขนาดไฟล์รูปภาพใหญ่เกินไป กรุณาเลือกรูปที่มีขนาดเล็กลง`);
 
       setStatus("กำลังส่งข้อมูล...");
-      submitBtn.innerText = "กำลังบันทึก...";
+      submitBtn.innerText = "กำลังบันทึกค่า...";
       
       const res = await fetchWithTimeout(GAS_WEB_APP_URL, { method: 'POST', body: payloadStr, redirect: 'follow' }, FETCH_TIMEOUT_MS);
       if (!res.ok) throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด`);
-      const data =.json();
+      const data = await res.json();
 
       if (data.status === "success") {
         setStatus(""); alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
