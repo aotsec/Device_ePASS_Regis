@@ -20,6 +20,8 @@
     .img-preview { max-width: 100%; height: 120px; object-fit: contain; margin-top: 5px; display: none; border: 1px solid #ddd; }
     .status-msg { text-align:center; font-size:13px; color:#0056b3; margin-top:8px; min-height:18px; }
     .file-size-hint { font-size:11px; color:#888; margin-top:3px; }
+    /* สไตล์สำหรับช่องกรอกข้อมูล "อื่นๆ" */
+    .other-input { width: 100%; padding: 10px; border: 1px dashed #ff9900; border-radius: 6px; margin-top: 8px; box-sizing: border-box; font-size: 14px; background-color: #fff9f0; }
   </style>
 </head>
 <body>
@@ -42,7 +44,7 @@
 
     <div class="form-group">
       <label>คำนำหน้าชื่อ *</label>
-      <select id="title" required><option value="">-- กำลังโหลดรายการ --</option></select>
+      <select id="title" required onchange="handleDropdownChange(this)"><option value="">-- กำลังโหลดรายการ --</option></select>
     </div>
 
     <div class="form-group">
@@ -101,16 +103,42 @@
   let existingCardImgUrl = '-';
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec";
 
-  // ตั้งค่าการบีบอัดรูปภาพ
-  const IMG_MAX_DIMENSION = 1280;   // ความกว้าง/สูงสูงสุดหลังย่อ (px)
-  const IMG_TARGET_KB = 400;        // ขนาดเป้าหมายต่อรูปหลังบีบอัด (KB)
-  const FETCH_TIMEOUT_MS = 45000;   // เวลารอสูงสุดก่อนถือว่า timeout (ms)
+  const IMG_MAX_DIMENSION = 1280;
+  const IMG_TARGET_KB = 400;
+  const FETCH_TIMEOUT_MS = 45000;
 
   function setStatus(msg) {
     document.getElementById('statusMsg').innerText = msg || '';
   }
 
-  // ---------- JSONP helper (ใช้กับ GET เท่านั้น เพื่อเลี่ยงปัญหา CORS) ----------
+  // สร้าง Text Box เมื่อเลือก "อื่นๆ"
+  function handleDropdownChange(selectElement) {
+    let nextSibling = selectElement.nextElementSibling;
+    if (selectElement.value === 'อื่นๆ') {
+      if (!nextSibling || !nextSibling.classList.contains('other-input')) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'other-input';
+        input.placeholder = 'โปรดระบุข้อมูล...';
+        input.required = true;
+        selectElement.parentNode.insertBefore(input, selectElement.nextSibling);
+      }
+    } else {
+      if (nextSibling && nextSibling.classList.contains('other-input')) {
+        nextSibling.remove();
+      }
+    }
+  }
+
+  // ดึงค่าจริง (ถ้าเป็นอื่นๆ ให้ดึงจาก Text Box แทน)
+  function getActualValue(selectElement) {
+    if (!selectElement) return "";
+    if (selectElement.value === 'อื่นๆ') {
+      return selectElement.nextElementSibling ? selectElement.nextElementSibling.value.trim() : 'อื่นๆ';
+    }
+    return selectElement.value;
+  }
+
   function fetchJSONP(url, callbackName) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -155,8 +183,6 @@
       if (data.status === "success") {
         configData = data.config;
         populateDropdown('title', configData.titles);
-      } else {
-        console.error("Config error:", data.message);
       }
     } catch (err) {
       console.error("Fetch Config Error:", err);
@@ -185,9 +211,7 @@
           imgPrev.style.display = 'block';
         }
       }
-    } catch (err) {
-      console.error("Fetch User Error:", err);
-    }
+    } catch (err) { console.error("Fetch User Error:", err); }
     if (itemIndex === 0) addItem();
   }
 
@@ -217,18 +241,28 @@
     let brandOpts = (configData.brands || []).map(b => `<option value="${b}">${b}</option>`).join('');
     let colorOpts = (configData.colors || []).map(c => `<option value="${c}">${c}</option>`).join('');
 
+    // ควบคุมการแสดงผลช่องแนบรูป (รายการ 1 ไม่ต้องมีรูป, รายการ 2-5 มีรูป)
+    let imageSectionHTML = '';
+    if (itemIndex > 1) {
+      imageSectionHTML = `
+        <div class="form-group">
+          <label>6. ถ่ายรูปอุปกรณ์ (ถ้ามี)</label>
+          <input type="file" class="item-img" accept="image/*" onchange="previewImage(this, 'itemImgPrev_${itemIndex}')">
+          <img id="itemImgPrev_${itemIndex}" class="img-preview">
+        </div>
+      `;
+    } else {
+      imageSectionHTML = `<div style="font-size: 13px; color: #d9534f; margin-bottom: 15px;">* รายการที่ 1 ไม่ต้องแนบรูปถ่ายอุปกรณ์</div>`;
+    }
+
     div.innerHTML = `
       <h4 style="margin-top:0;">รายการที่ ${itemIndex}</h4>
-      <div class="form-group"><label>1. ประเภทอุปกรณ์ *</label><select class="item-type" required><option value="">-- เลือกประเภท --</option>${typeOpts}</select></div>
-      <div class="form-group"><label>2. ยี่ห้อ *</label><select class="item-brand" required><option value="">-- เลือกรุ่น/ยี่ห้อ --</option>${brandOpts}</select></div>
+      <div class="form-group"><label>1. ประเภทอุปกรณ์ *</label><select class="item-type" required onchange="handleDropdownChange(this)"><option value="">-- เลือกประเภท --</option>${typeOpts}</select></div>
+      <div class="form-group"><label>2. ยี่ห้อ *</label><select class="item-brand" required onchange="handleDropdownChange(this)"><option value="">-- เลือกรุ่น/ยี่ห้อ --</option>${brandOpts}</select></div>
       <div class="form-group"><label>3. ระบุรุ่น / โมเดล *</label><input type="text" class="item-model" required placeholder="รุ่น / โมเดล"></div>
       <div class="form-group"><label>4. หมายเลขซีเรียล (S/N) หรือ IMEI *</label><input type="text" class="item-serial" required placeholder="S/N หรือ IMEI"></div>
-      <div class="form-group"><label>5. สีของอุปกรณ์ *</label><select class="item-color" required><option value="">-- เลือกสี --</option>${colorOpts}</select></div>
-      <div class="form-group">
-        <label>6. ถ่ายรูปอุปกรณ์ (ถ้ามี)</label>
-        <input type="file" class="item-img" accept="image/*" onchange="previewImage(this, 'itemImgPrev_${itemIndex}')">
-        <img id="itemImgPrev_${itemIndex}" class="img-preview">
-      </div>
+      <div class="form-group"><label>5. สีของอุปกรณ์ *</label><select class="item-color" required onchange="handleDropdownChange(this)"><option value="">-- เลือกสี --</option>${colorOpts}</select></div>
+      ${imageSectionHTML}
     `;
     container.appendChild(div);
     if (itemIndex === 5) document.getElementById('btnAddItem').style.display = 'none';
@@ -243,8 +277,6 @@
     }
   }
 
-  // ---------- บีบอัดรูปภาพก่อนแปลงเป็น Base64 ----------
-  // ย่อขนาดภาพด้วย canvas แล้วลด quality วนจนกว่าจะได้ขนาดไม่เกินเป้าหมาย
   function loadImageFromFile(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -280,19 +312,14 @@
       const img = await loadImageFromFile(file);
       let quality = 0.8;
       let dataUrl = drawToDataUrl(img, quality);
-      let sizeKB = (dataUrl.length * 0.75) / 1024; // ประมาณขนาดจริงจาก base64 length
-
+      let sizeKB = (dataUrl.length * 0.75) / 1024;
       while (sizeKB > IMG_TARGET_KB && quality > 0.3) {
         quality -= 0.1;
         dataUrl = drawToDataUrl(img, quality);
         sizeKB = (dataUrl.length * 0.75) / 1024;
       }
       return dataUrl;
-    } catch (err) {
-      console.error("Compress image error, fallback to original file:", err);
-      // ถ้าบีบอัดไม่สำเร็จ ใช้ไฟล์ต้นฉบับแทน (กันฟอร์มพังทั้งหมด)
-      return await getBase64Raw(file);
-    }
+    } catch (err) { return await getBase64Raw(file); }
   }
 
   function getBase64Raw(file) {
@@ -304,7 +331,6 @@
     });
   }
 
-  // ---------- fetch พร้อม timeout กันค้าง ----------
   function fetchWithTimeout(url, options, timeoutMs) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -318,25 +344,31 @@
     submitBtn.disabled = true;
 
     try {
-      // 1. บีบอัดรูปบัตร
       setStatus("กำลังเตรียมรูปหน้าบัตร...");
       const cardImgFile = document.getElementById('cardImg').files[0];
       const cardImgBase64 = cardImgFile ? await compressImageFile(cardImgFile) : null;
 
-      // 2. บีบอัดรูปอุปกรณ์แต่ละรายการ
       const items = [];
       for (let i = 1; i <= itemIndex; i++) {
         const block = document.getElementById(`item_${i}`);
         if (block) {
-          setStatus(`กำลังเตรียมรูปอุปกรณ์รายการที่ ${i}...`);
-          const itemImgFile = block.querySelector('.item-img').files[0];
-          const itemImgBase64 = itemImgFile ? await compressImageFile(itemImgFile) : null;
+          const typeSelect = block.querySelector('.item-type');
+          const brandSelect = block.querySelector('.item-brand');
+          const colorSelect = block.querySelector('.item-color');
+          
+          let itemImgBase64 = null;
+          const imgInput = block.querySelector('.item-img');
+          if (imgInput && imgInput.files[0]) {
+            setStatus(`กำลังเตรียมรูปอุปกรณ์รายการที่ ${i}...`);
+            itemImgBase64 = await compressImageFile(imgInput.files[0]);
+          }
+
           items.push({
-            type: block.querySelector('.item-type').value,
-            brand: block.querySelector('.item-brand').value,
-            model: block.querySelector('.item-model').value,
-            serial: block.querySelector('.item-serial').value,
-            color: block.querySelector('.item-color').value,
+            type: getActualValue(typeSelect),
+            brand: getActualValue(brandSelect),
+            model: block.querySelector('.item-model').value.trim(),
+            serial: block.querySelector('.item-serial').value.trim(),
+            color: getActualValue(colorSelect),
             imgBase64: itemImgBase64
           });
         }
@@ -345,7 +377,7 @@
       const payload = {
         lineUserId: lineUserId,
         cardNumber: document.getElementById('cardNumber').value.trim(),
-        title: document.getElementById('title').value,
+        title: getActualValue(document.getElementById('title')),
         firstName: document.getElementById('firstName').value.trim(),
         lastName: document.getElementById('lastName').value.trim(),
         email: document.getElementById('email').value.trim(),
@@ -358,50 +390,47 @@
         pdpaAccepted: document.getElementById('pdpa').checked
       };
 
-      // เช็คขนาด payload รวม ก่อนส่งจริง (กันเคสรูปใหญ่ผิดปกติ)
       const payloadStr = JSON.stringify(payload);
-      const payloadSizeMB = (payloadStr.length / (1024 * 1024)).toFixed(2);
-      console.log(`Payload size: ${payloadSizeMB} MB`);
       if (payloadStr.length > 15 * 1024 * 1024) {
-        throw new Error(`ขนาดข้อมูลใหญ่เกินไป (${payloadSizeMB} MB) กรุณาลดจำนวนรูปภาพ หรือถ่ายรูปใหม่`);
+        throw new Error(`ขนาดข้อมูลใหญ่เกินไป กรุณาลดจำนวนรูปภาพ หรือถ่ายรูปใหม่`);
       }
 
       setStatus("กำลังส่งข้อมูล กรุณารอสักครู่...");
       submitBtn.innerText = "กำลังบันทึก...";
 
-      // สำคัญ: ไม่ตั้ง header 'Content-Type' เอง เพื่อให้ browser ใช้ text/plain
-      // ซึ่งเป็น "simple request" หลีกเลี่ยง CORS preflight (OPTIONS) ที่ GAS ไม่รองรับ
       const res = await fetchWithTimeout(GAS_WEB_APP_URL, {
         method: 'POST',
         body: payloadStr,
         redirect: 'follow'
       }, FETCH_TIMEOUT_MS);
 
-      if (!res.ok) {
-        throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${res.status})`);
-      }
-
+      if (!res.ok) throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${res.status})`);
       const data = await res.json();
 
       if (data.status === "success") {
         setStatus("");
         alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
-        if (typeof liff !== 'undefined' && liff.isInClient()) {
-          liff.closeWindow();
-        }
+
+        // ฟีเจอร์ใหม่: รีเซ็ตฟอร์มและเคลียร์หน้าจอทั้งหมดเตรียมพร้อมสำหรับรายการต่อไป
+        document.getElementById('regForm').reset();
+        document.getElementById('cardImgPreview').style.display = 'none';
+        document.getElementById('cardImgPreview').src = '';
+        document.getElementById('itemsContainer').innerHTML = ''; 
+        document.getElementById('btnAddItem').style.display = 'block';
+        itemIndex = 0;
+        addItem(); 
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
       } else {
         throw new Error(data.message || "ไม่ทราบสาเหตุ");
       }
 
     } catch (err) {
-      // แสดง error จริงเสมอ ห้ามขึ้นข้อความ "สำเร็จ" หลอกผู้ใช้เด็ดขาด
       console.error("Submit Error:", err);
       let userMsg = err.message || err.toString();
-      if (err.name === 'AbortError') {
-        userMsg = "หมดเวลาเชื่อมต่อ เครือข่ายอาจช้าหรือไม่เสถียร กรุณาลองใหม่อีกครั้ง";
-      }
+      if (err.name === 'AbortError') userMsg = "หมดเวลาเชื่อมต่อ เครือข่ายอาจช้าหรือไม่เสถียร กรุณาลองใหม่อีกครั้ง";
       setStatus("");
-      alert("เกิดข้อผิดพลาด: " + userMsg + "\n\nกรุณาลองใหม่อีกครั้ง หากยังไม่สำเร็จ ลองลดขนาด/จำนวนรูปภาพ");
+      alert("เกิดข้อผิดพลาด: " + userMsg);
     } finally {
       submitBtn.disabled = false;
       submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน";
