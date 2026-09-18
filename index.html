@@ -32,25 +32,59 @@
   
   <div class="security-warning">
     <strong>⚠️ คำเตือนความปลอดภัย:</strong><br>
-    การลงทะเบียนนี้ผูกกับ <b>"บัญชี LINE ส่วนตัวของคุณ"</b> เท่านั้น ห้ามทำรายการแทนบุคคลอื่นโดยเด็ดขาด 
+    การลงทะเบียนนี้ผูกกับ <b>"บัญชี LINE ส่วนตัวของคุณ"</b> เท่านั้น ห้ามทำรายการแทนบุคคลอื่นโดยเด็ดขาด ข้อมูลและประวัติการลงทะเบียนทั้งหมดจะถูกตรวจสอบเพื่อมาตรการรักษาความปลอดภัยของ ทสภ.
   </div>
 
   <form id="regForm">
-    <!-- ข้อมูลส่วนตัว (โค้ดเดิม) -->
+    <!-- ข้อมูลส่วนตัว -->
     <div class="form-group">
       <label>แนบรูปหน้าบัตรอนุญาตบุคคล *</label>
       <input type="file" id="cardImg" accept="image/*" onchange="previewImage(this, 'cardImgPreview')">
       <img id="cardImgPreview" class="img-preview">
       <div class="file-size-hint">ระบบจะบีบอัดรูปให้อัตโนมัติ</div>
     </div>
-    <div class="form-group"><label>หมายเลขบัตรอนุญาตบุคคล *</label><input type="text" id="cardNumber" required placeholder="เช่น SUV/12345/12345/67" oninput="this.value = this.value.toUpperCase()"></div>
-    <div class="form-group"><label>คำนำหน้าชื่อ *</label><select id="title" required onchange="handleDropdownChange(this)"><option value="">-- กำลังโหลดรายการ --</option></select></div>
-    <div class="form-group"><label>ชื่อ * (ไม่มีคำนำหน้านาม และห้ามเว้นวรรค)</label><input type="text" id="firstName" required placeholder="กรอกเฉพาะชื่อจริง"></div>
-    <div class="form-group"><label>นามสกุล *</label><input type="text" id="lastName" required placeholder="กรอกเฉพาะนามสกุล"></div>
-    <div class="form-group"><label>อีเมล (E-Mail) *</label><input type="email" id="email" required placeholder="example@email.com"></div>
-    <div class="form-group"><label>บริษัท *</label><input type="text" id="company" required placeholder="ระบุชื่อบริษัท/หน่วยงาน"></div>
-    <div class="form-group"><label>หน้าที่ หรือ สังกัด *</label><input type="text" id="role" required placeholder="ระบุหน้าที่ หรือสังกัด"></div>
-    <div class="form-group"><label>หมายเลขโทรศัพท์ (10 หลัก) *</label><input type="tel" id="phone" pattern="[0-9]{10}" maxlength="10" required placeholder="08XXXXXXXX"></div>
+    
+    <div class="form-group">
+      <label>หมายเลขบัตรอนุญาตบุคคล *</label>
+      <input type="text" id="cardNumber" required placeholder="เช่น SUV/12345/12345/67" oninput="this.value = this.value.toUpperCase()">
+    </div>
+
+    <div class="form-group">
+      <label>คำนำหน้าชื่อ *</label>
+      <select id="title" required onchange="handleDropdownChange(this)">
+        <option value="">-- กำลังโหลดรายการ --</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>ชื่อ * (ไม่มีคำนำหน้านาม และห้ามเว้นวรรค)</label>
+      <input type="text" id="firstName" required placeholder="กรอกเฉพาะชื่อจริง">
+    </div>
+
+    <div class="form-group">
+      <label>นามสกุล *</label>
+      <input type="text" id="lastName" required placeholder="กรอกเฉพาะนามสกุล">
+    </div>
+
+    <div class="form-group">
+      <label>อีเมล (E-Mail) *</label>
+      <input type="email" id="email" required placeholder="example@email.com">
+    </div>
+
+    <div class="form-group">
+      <label>บริษัท *</label>
+      <input type="text" id="company" required placeholder="ระบุชื่อบริษัท/หน่วยงาน">
+    </div>
+
+    <div class="form-group">
+      <label>หน้าที่ หรือ สังกัด *</label>
+      <input type="text" id="role" required placeholder="ระบุหน้าที่ หรือสังกัด">
+    </div>
+
+    <div class="form-group">
+      <label>หมายเลขโทรศัพท์ (10 หลัก) *</label>
+      <input type="tel" id="phone" pattern="[0-9]{10}" maxlength="10" required placeholder="08XXXXXXXX">
+    </div>
 
     <hr style="margin: 20px 0;">
     <h3 style="font-size:16px; color:#003366;">รายการลงทะเบียนอุปกรณ์ (สูงสุด 5 รายการ)</h3>
@@ -62,7 +96,9 @@
 
     <div class="pdpa-box">
       <input type="checkbox" id="pdpa" required style="width: auto;">
-      <label for="pdpa" style="display:inline; font-weight:normal;">ข้าพเจ้ายินยอมให้ใช้ข้อมูลเพื่อการตรวจสอบตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)</label>
+      <label for="pdpa" style="display:inline; font-weight:normal;">
+        ข้าพเจ้ายินยอมให้ใช้ข้อมูลเพื่อการตรวจสอบตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)
+      </label>
     </div>
 
     <button type="submit" id="btnSubmit" class="btn">บันทึกข้อมูลลงทะเบียน</button>
@@ -74,43 +110,87 @@
   let lineUserId = '';
   let configData = {};
   let existingCardImgUrl = '-';
-  let itemCounterId = 0; // ตัวนับ ID ประจำบล็อก
+  let itemCounterId = 0; 
+  
+  // URL หลังบ้าน
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec";
+  const IMG_MAX_DIMENSION = 1280;
+  const IMG_TARGET_KB = 400;
+  const FETCH_TIMEOUT_MS = 45000;
 
-  const IMG_MAX_DIMENSION = 1280, IMG_TARGET_KB = 400, FETCH_TIMEOUT_MS = 45000;
-  function setStatus(msg) { document.getElementById('statusMsg').innerText = msg || ''; }
+  function setStatus(msg) { 
+    document.getElementById('statusMsg').innerText = msg || ''; 
+  }
 
   // ---------------- UI & Logic Helpers ----------------
   function handleDropdownChange(selectElement) {
     let nextSibling = selectElement.nextElementSibling;
     if (selectElement.value === 'อื่นๆ') {
       if (!nextSibling || !nextSibling.classList.contains('other-input')) {
-        const input = document.createElement('input'); input.type = 'text'; input.className = 'other-input'; input.placeholder = 'โปรดระบุข้อมูล...'; input.required = true;
+        const input = document.createElement('input'); 
+        input.type = 'text'; 
+        input.className = 'other-input'; 
+        input.placeholder = 'โปรดระบุข้อมูล...'; 
+        input.required = true;
         selectElement.parentNode.insertBefore(input, selectElement.nextSibling);
       }
-    } else { if (nextSibling && nextSibling.classList.contains('other-input')) nextSibling.remove(); }
+    } else { 
+      if (nextSibling && nextSibling.classList.contains('other-input')) {
+        nextSibling.remove(); 
+      }
+    }
   }
 
   function setValueWithOther(selectElement, val) {
-    if (!val) return;
+    if (!val || !selectElement) return;
     const options = Array.from(selectElement.options).map(o => o.value);
-    if (options.includes(val)) { selectElement.value = val; } 
-    else { selectElement.value = 'อื่นๆ'; handleDropdownChange(selectElement); selectElement.nextElementSibling.value = val; }
+    
+    if (options.includes(val)) { 
+      selectElement.value = val; 
+    } else { 
+      selectElement.value = 'อื่นๆ'; 
+      handleDropdownChange(selectElement); 
+      if (selectElement.nextElementSibling) {
+        selectElement.nextElementSibling.value = val; 
+      }
+    }
   }
 
   function getActualValue(selectElement) {
     if (!selectElement) return "";
-    return (selectElement.value === 'อื่นๆ') ? (selectElement.nextElementSibling ? selectElement.nextElementSibling.value.trim() : 'อื่นๆ') : selectElement.value;
+    if (selectElement.value === 'อื่นๆ') {
+      return selectElement.nextElementSibling ? selectElement.nextElementSibling.value.trim() : 'อื่นๆ';
+    }
+    return selectElement.value;
   }
 
-  // ---------------- ดึงข้อมูลและสร้างฟอร์ม ----------------
-  function fetchJSONP(url, callbackName) {
+  // ---------------- ระบบ Fetch ข้อมูล (ป้องกันแคช) ----------------
+  function fetchJSONP(url) {
     return new Promise((resolve, reject) => {
+      const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
       const script = document.createElement('script');
-      const timer = setTimeout(() => { reject(new Error("หมดเวลาเชื่อมต่อ (JSONP timeout)")); cleanup(); }, 15000);
-      function cleanup() { if (document.body.contains(script)) document.body.removeChild(script); delete window[callbackName]; clearTimeout(timer); }
-      window[callbackName] = function(data) { resolve(data); cleanup(); };
-      script.src = `${url}&callback=${callbackName}`; script.onerror = () => { reject(new Error("JSONP Request Failed")); cleanup(); };
+      const timer = setTimeout(() => { 
+        reject(new Error("หมดเวลาเชื่อมต่อ (JSONP timeout)")); 
+        cleanup(); 
+      }, 15000);
+      
+      function cleanup() { 
+        if (document.body.contains(script)) document.body.removeChild(script); 
+        delete window[callbackName]; 
+        clearTimeout(timer); 
+      }
+      
+      window[callbackName] = function(data) { 
+        resolve(data); 
+        cleanup(); 
+      };
+      
+      script.src = `${url}&callback=${callbackName}`; 
+      script.onerror = () => { 
+        reject(new Error("การเชื่อมต่อฐานข้อมูลล้มเหลว")); 
+        cleanup(); 
+      };
+      
       document.body.appendChild(script);
     });
   }
@@ -119,29 +199,43 @@
     await fetchConfig();
     liff.init({ liffId: "2011647032-x6HiAaYa" }).then(async () => {
       if (liff.isLoggedIn()) {
-        const profile = await liff.getProfile(); lineUserId = profile.userId; await fetchUserData(lineUserId);
-      } else { liff.login(); }
-    }).catch(err => { console.error(err); addItem(); }); // กรณีมี error บังคับสร้าง 1 รายการเปล่าๆ
+        const profile = await liff.getProfile(); 
+        lineUserId = profile.userId; 
+        await fetchUserData(lineUserId);
+      } else { 
+        liff.login(); 
+      }
+    }).catch(err => { 
+      console.error(err); 
+      addItem(); 
+    }); 
   };
 
   async function fetchConfig() {
     try {
-      const data = await fetchJSONP(`${GAS_WEB_APP_URL}?action=getConfig`, 'handleConfigResponse');
-      if (data.status === "success") { configData = data.config; populateDropdown('title', configData.titles); }
-    } catch (err) { setStatus("โหลดรายการตัวเลือกไม่สำเร็จ"); }
+      const data = await fetchJSONP(`${GAS_WEB_APP_URL}?action=getConfig`);
+      if (data.status === "success") { 
+        configData = data.config; 
+        populateDropdown('title', configData.titles); 
+      }
+    } catch (err) { 
+      setStatus("โหลดรายการตัวเลือกไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ"); 
+    }
   }
 
-  // แปลงสตริงอุปกรณ์จากชีตกลับเป็น Object
   function parseItemString(str) {
     if (!str || str === '-') return null;
-    const regex = /\[ประเภท: (.*?)\] \[ยี่ห้อ: (.*?)\] \[รุ่น: (.*?)\] \[S/N: (.*?)\] \[สี: (.*?)\] \[รูปถ่าย: (.*?)\]/;
+    const regex = /\[ประเภท: (.*?)\] \[ยี่ห้อ: (.*?)\] \[รุ่น: (.*?)\] \[S\/N: (.*?)\] \[สี: (.*?)\] \[รูปถ่าย: (.*?)\]/;
     const match = str.match(regex);
-    return match ? { type: match[1], brand: match[2], model: match[3], serial: match[4], color: match[5], imgUrl: match[6] !== '-' ? match[6] : '' } : null;
+    return match ? { 
+      type: match[1], brand: match[2], model: match[3], 
+      serial: match[4], color: match[5], imgUrl: match[6] !== '-' ? match[6] : '' 
+    } : null;
   }
 
   async function fetchUserData(userId) {
     try {
-      const data = await fetchJSONP(`${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${userId}`, 'handleUserResponse');
+      const data = await fetchJSONP(`${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${userId}`);
       if (data.status === "found") {
         const user = data.userData;
         document.getElementById('cardNumber').value = user.cardNumber || '';
@@ -151,34 +245,44 @@
         document.getElementById('email').value = user.email || '';
         document.getElementById('company').value = user.company || '';
         document.getElementById('role').value = user.role || '';
+        
         if (user.phone) document.getElementById('phone').value = String(user.phone).replace(/^'/, '');
         
         existingCardImgUrl = user.cardImgUrl || '-';
         if (existingCardImgUrl !== '-') {
-          const imgPrev = document.getElementById('cardImgPreview'); imgPrev.src = existingCardImgUrl; imgPrev.style.display = 'block';
+          const imgPrev = document.getElementById('cardImgPreview'); 
+          imgPrev.src = existingCardImgUrl; 
+          imgPrev.style.display = 'block';
         }
 
-        // ดึงรายการอุปกรณ์ 1-5 กลับมาสร้างใหม่
         const itemKeys = ['item1', 'item2', 'item3', 'item4', 'item5'];
         itemKeys.forEach(k => {
           const parsed = parseItemString(user[k]);
           if (parsed) addItem(parsed);
         });
       }
-    } catch (err) { console.error(err); }
-    // ถ้าดึงมาแล้วไม่มีอุปกรณ์เลย ให้สร้างกล่องเปล่า 1 กล่อง
+    } catch (err) { 
+      console.error(err); 
+    }
+    
     if (document.querySelectorAll('.item-block').length === 0) addItem(); 
   }
 
   function populateDropdown(elemId, optionsList) {
-    const select = document.getElementById(elemId); select.innerHTML = '<option value="">-- เลือกรายการ --</option>';
-    if (optionsList) optionsList.forEach(opt => { select.innerHTML += `<option value="${opt}">${opt}</option>`; });
+    const select = document.getElementById(elemId); 
+    select.innerHTML = '<option value="">-- เลือกรายการ --</option>';
+    if (optionsList) {
+      optionsList.forEach(opt => { select.innerHTML += `<option value="${opt}">${opt}</option>`; });
+    }
   }
 
   // ---------------- ระบบ Dynamic Items (เพิ่ม/ลบ/จัดเรียง) ----------------
   function addItem(existingData = null) {
     const currentCount = document.querySelectorAll('.item-block').length;
-    if (currentCount >= 5) return alert("ลงทะเบียนได้สูงสุด 5 รายการเท่านั้นค่ะ");
+    if (currentCount >= 5) {
+      alert("ลงทะเบียนได้สูงสุด 5 รายการเท่านั้นค่ะ");
+      return;
+    }
     
     itemCounterId++;
     const div = document.createElement('div');
@@ -200,15 +304,16 @@
       <div class="form-group"><label>5. สีของอุปกรณ์ *</label><select class="item-color" required onchange="handleDropdownChange(this)"><option value="">-- เลือกสี --</option>${colorOpts}</select></div>
       
       <div class="first-item-warning" style="font-size: 13px; color: #d9534f; margin-bottom: 15px; display: none;">* รายการที่ 1 ไม่ต้องแนบรูปถ่ายอุปกรณ์</div>
+      
       <div class="form-group image-section">
         <label>6. ถ่ายรูปอุปกรณ์ (ถ้ามี)</label>
         <input type="file" class="item-img" accept="image/*" onchange="previewImage(this, 'itemImgPrev_${itemCounterId}')">
         <img id="itemImgPrev_${itemCounterId}" class="img-preview" data-existing-url="">
       </div>
     `;
+    
     document.getElementById('itemsContainer').appendChild(div);
 
-    // ใส่ข้อมูลเดิมกลับคืนถ้ามี
     if (existingData) {
       setValueWithOther(div.querySelector('.item-type'), existingData.type);
       setValueWithOther(div.querySelector('.item-brand'), existingData.brand);
@@ -218,9 +323,11 @@
       
       if (existingData.imgUrl) {
         const imgPrev = div.querySelector('.img-preview');
-        imgPrev.src = existingData.imgUrl;
-        imgPrev.setAttribute('data-existing-url', existingData.imgUrl);
-        imgPrev.style.display = 'block';
+        if (imgPrev) {
+          imgPrev.src = existingData.imgUrl;
+          imgPrev.setAttribute('data-existing-url', existingData.imgUrl);
+          imgPrev.style.display = 'block';
+        }
       }
     }
     updateItemLabels();
@@ -229,22 +336,37 @@
   function removeItem(btn) {
     btn.closest('.item-block').remove();
     updateItemLabels();
-    if (document.querySelectorAll('.item-block').length === 0) addItem(); // บังคับให้เหลืออย่างน้อย 1
+    if (document.querySelectorAll('.item-block').length === 0) addItem(); 
   }
 
-  // ฟังก์ชันจัดเรียงตัวเลข (1, 2, 3...) ใหม่ทุกครั้งที่ลบ/เพิ่ม และซ่อนรูปรายการที่ 1
   function updateItemLabels() {
     const blocks = document.querySelectorAll('.item-block');
     blocks.forEach((block, index) => {
       block.querySelector('.item-number').innerText = index + 1;
+      
+      const typeSelect = block.querySelector('.item-type');
       if (index === 0) {
+        // กรองตัวเลือกให้เหลือแค่มือถือ/แท็บเล็ต สำหรับรายการแรก
+        let types = (configData.deviceTypes || []).filter(t => t.includes("โทรศัพท์") || t.includes("แท็บเล็ต") || t.includes("iPad"));
+        let currentVal = getActualValue(typeSelect);
+        typeSelect.innerHTML = '<option value="">-- เลือกประเภท --</option>' + types.map(t => `<option value="${t}">${t}</option>`).join('');
+        setValueWithOther(typeSelect, currentVal);
+
         block.querySelector('.image-section').style.display = 'none';
         block.querySelector('.first-item-warning').style.display = 'block';
       } else {
+        // ให้เลือกได้ทุกประเภทสำหรับรายการอื่นๆ
+        if (typeSelect.options.length < (configData.deviceTypes || []).length + 1) {
+          let currentVal = getActualValue(typeSelect);
+          typeSelect.innerHTML = '<option value="">-- เลือกประเภท --</option>' + (configData.deviceTypes || []).map(t => `<option value="${t}">${t}</option>`).join('');
+          setValueWithOther(typeSelect, currentVal);
+        }
+
         block.querySelector('.image-section').style.display = 'block';
         block.querySelector('.first-item-warning').style.display = 'none';
       }
     });
+    
     document.getElementById('btnAddItem').style.display = (blocks.length >= 5) ? 'none' : 'block';
   }
 
@@ -252,15 +374,23 @@
   function previewImage(input, previewId) {
     const preview = document.getElementById(previewId);
     if (input.files && input.files[0]) {
-      const reader = new FileReader(); reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; }; reader.readAsDataURL(input.files[0]);
+      const reader = new FileReader(); 
+      reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; }; 
+      reader.readAsDataURL(input.files[0]);
     }
   }
 
   function loadImageFromFile(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = e => { const img = new Image(); img.onload = () => resolve(img); img.onerror = reject; img.src = e.target.result; };
-      reader.onerror = reject; reader.readAsDataURL(file);
+      reader.onload = e => { 
+        const img = new Image(); 
+        img.onload = () => resolve(img); 
+        img.onerror = reject; 
+        img.src = e.target.result; 
+      };
+      reader.onerror = reject; 
+      reader.readAsDataURL(file);
     });
   }
 
@@ -268,29 +398,42 @@
     let { width, height } = img;
     if (width > IMG_MAX_DIMENSION || height > IMG_MAX_DIMENSION) {
       const ratio = Math.min(IMG_MAX_DIMENSION / width, IMG_MAX_DIMENSION / height);
-      width = Math.round(width * ratio); height = Math.round(height * ratio);
+      width = Math.round(width * ratio); 
+      height = Math.round(height * ratio);
     }
-    const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
-    canvas.getContext('2d').drawImage(img, 0, 0, width, height); return canvas.toDataURL('image/jpeg', quality);
+    const canvas = document.createElement('canvas'); 
+    canvas.width = width; 
+    canvas.height = height;
+    canvas.getContext('2d').drawImage(img, 0, 0, width, height); 
+    return canvas.toDataURL('image/jpeg', quality);
   }
 
   async function compressImageFile(file) {
     if (!file) return null;
     try {
       const img = await loadImageFromFile(file);
-      let quality = 0.8; let dataUrl = drawToDataUrl(img, quality);
+      let quality = 0.8; 
+      let dataUrl = drawToDataUrl(img, quality);
       let sizeKB = (dataUrl.length * 0.75) / 1024;
-      while (sizeKB > IMG_TARGET_KB && quality > 0.3) { quality -= 0.1; dataUrl = drawToDataUrl(img, quality); sizeKB = (dataUrl.length * 0.75) / 1024; }
+      while (sizeKB > IMG_TARGET_KB && quality > 0.3) { 
+        quality -= 0.1; 
+        dataUrl = drawToDataUrl(img, quality); 
+        sizeKB = (dataUrl.length * 0.75) / 1024; 
+      }
       return dataUrl;
     } catch (err) {
       return new Promise((resolve, reject) => {
-        const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = () => resolve(reader.result); reader.onerror = reject;
+        const reader = new FileReader(); 
+        reader.readAsDataURL(file); 
+        reader.onload = () => resolve(reader.result); 
+        reader.onerror = reject;
       });
     }
   }
 
   function fetchWithTimeout(url, options, timeoutMs) {
-    const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const controller = new AbortController(); 
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
   }
 
@@ -301,19 +444,21 @@
     submitBtn.disabled = true;
 
     try {
-      // Validation ส่วนตัว
       const cardNumberVal = document.getElementById('cardNumber').value.trim().toUpperCase();
       if (!/^\d{6}\/\d{5}\/\d{2}$/.test(cardNumberVal) && !/^(SUV\vert{}DMK\vert{}CEI\vert{}CNX\vert{}HKT\vert{}HDY)\/\d{5}\/\d{5}\/\d{2}$/.test(cardNumberVal) && !/^(SUV|DMK|CEI|CNX|HKT|HDY)\d{6}\/\d{5}[A-Z]$/.test(cardNumberVal) && !/^(SUV\vert{}DMK\vert{}CEI\vert{}CNX\vert{}HKT\vert{}HDY)\/\d{8}\/\d{5}\/\d{2}$/.test(cardNumberVal)) {
         throw new Error("รูปแบบ 'หมายเลขบัตร' ไม่ถูกต้อง");
       }
+      
       const firstNameVal = document.getElementById('firstName').value.trim();
       if (['นาย', 'นาง', 'นางสาว', 'น.ส.', 'ด.ช.', 'ด.ญ.', 'ว่าที่ร้อย'].some(t => firstNameVal.startsWith(t)) || firstNameVal.includes(' ')) {
         throw new Error("ช่อง 'ชื่อ' ห้ามใส่คำนำหน้า และห้ามเว้นวรรคค่ะ");
       }
+      
       const lastNameVal = document.getElementById('lastName').value.trim();
       if (lastNameVal.includes(firstNameVal) || firstNameVal.includes(lastNameVal)) {
         throw new Error("ตรวจพบข้อมูลซ้ำซ้อนระหว่าง ชื่อ-นามสกุล กรุณาแยกให้ชัดเจนค่ะ");
       }
+      
       const phoneVal = document.getElementById('phone').value.trim();
       if (!/^0[689]\d{8}$/.test(phoneVal)) throw new Error("รูปแบบ 'เบอร์โทรศัพท์' ไม่ถูกต้อง");
 
@@ -321,14 +466,13 @@
       const cardImgFile = document.getElementById('cardImg').files[0];
       const cardImgBase64 = cardImgFile ? await compressImageFile(cardImgFile) : null;
 
-      // จัดการและจัดเรียงอุปกรณ์ (ตัดช่องว่างออกด้วย querySelectorAll)
       const blocks = document.querySelectorAll('.item-block');
       const items = [];
+      
       for (let i = 0; i < blocks.length; i++) {
         const block = blocks[i];
         const actualType = getActualValue(block.querySelector('.item-type'));
         
-        // ล็อกกฎรายการที่ 1 (Index 0) อย่างเคร่งครัด
         if (i === 0) {
           if (!actualType.includes('โทรศัพท์') && !actualType.includes('แท็บเล็ต') && !actualType.includes('iPad')) {
             throw new Error("อุปกรณ์ 'รายการที่ 1' ต้องเป็น โทรศัพท์มือถือ หรือ แท็บเล็ต/iPad เท่านั้นค่ะ\n(หากมีการลบอุปกรณ์ กรุณาจัดเรียงประเภทให้ถูกต้อง)");
@@ -337,8 +481,11 @@
 
         let itemImgBase64 = null;
         const imgInput = block.querySelector('.item-img');
-        if (imgInput && imgInput.files[0]) itemImgBase64 = await compressImageFile(imgInput.files[0]);
-        const existingImgUrl = block.querySelector('.img-preview').getAttribute('data-existing-url');
+        if (imgInput && imgInput.files[0]) {
+          itemImgBase64 = await compressImageFile(imgInput.files[0]);
+        }
+        
+        const existingImgUrl = block.querySelector('.img-preview') ? block.querySelector('.img-preview').getAttribute('data-existing-url') : '';
 
         items.push({
           type: actualType,
@@ -352,10 +499,19 @@
       }
 
       const payload = {
-        lineUserId: lineUserId, cardNumber: cardNumberVal, title: getActualValue(document.getElementById('title')),
-        firstName: firstNameVal, lastName: lastNameVal, email: document.getElementById('email').value.trim(),
-        company: document.getElementById('company').value.trim(), role: document.getElementById('role').value.trim(),
-        phone: "'" + phoneVal, cardImgBase64: cardImgBase64, existingCardImgUrl: existingCardImgUrl, items: items, pdpaAccepted: document.getElementById('pdpa').checked
+        lineUserId: lineUserId, 
+        cardNumber: cardNumberVal, 
+        title: getActualValue(document.getElementById('title')),
+        firstName: firstNameVal, 
+        lastName: lastNameVal, 
+        email: document.getElementById('email').value.trim(),
+        company: document.getElementById('company').value.trim(), 
+        role: document.getElementById('role').value.trim(),
+        phone: "'" + phoneVal, 
+        cardImgBase64: cardImgBase64, 
+        existingCardImgUrl: existingCardImgUrl, 
+        items: items, 
+        pdpaAccepted: document.getElementById('pdpa').checked
       };
 
       const payloadStr = JSON.stringify(payload);
@@ -363,21 +519,43 @@
 
       setStatus("กำลังส่งข้อมูล...");
       submitBtn.innerText = "กำลังบันทึก...";
-      const res = await fetchWithTimeout(GAS_WEB_APP_URL, { method: 'POST', body: payloadStr, redirect: 'follow' }, FETCH_TIMEOUT_MS);
+      
+      const res = await fetchWithTimeout(GAS_WEB_APP_URL, { 
+        method: 'POST', 
+        body: payloadStr, 
+        redirect: 'follow' 
+      }, FETCH_TIMEOUT_MS);
+      
       if (!res.ok) throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด`);
       const data = await res.json();
 
       if (data.status === "success") {
-        setStatus(""); alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
-        location.reload(); // รีเฟรชเพื่อโหลดข้อมูลที่เพิ่งจัดเรียงใหม่จากชีตกลับมาโชว์สวยๆ เลยค่ะ
-      } else { throw new Error(data.message || "ไม่ทราบสาเหตุ"); }
+        setStatus(""); 
+        alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
+        
+        // รีเซ็ตหน้าฟอร์ม
+        document.getElementById('regForm').reset();
+        document.getElementById('cardImgPreview').style.display = 'none';
+        document.getElementById('cardImgPreview').src = '';
+        document.getElementById('itemsContainer').innerHTML = '';
+        itemCounterId = 0;
+        addItem(); 
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+      } else { 
+        throw new Error(data.message || "ไม่ทราบสาเหตุ"); 
+      }
 
     } catch (err) {
       console.error(err);
       let userMsg = err.message || err.toString();
       if (err.name === 'AbortError') userMsg = "หมดเวลาเชื่อมต่อ กรุณาลองใหม่อีกครั้ง";
-      setStatus(""); alert("เกิดข้อผิดพลาด: \n" + userMsg);
-    } finally { submitBtn.disabled = false; submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน"; }
+      setStatus(""); 
+      alert("เกิดข้อผิดพลาด: \n" + userMsg);
+    } finally { 
+      submitBtn.disabled = false; 
+      submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน"; 
+    }
   });
 </script>
 
