@@ -147,17 +147,31 @@
     return selectElement.value;
   }
 
-  // ฟังก์ชันจัดรูปแบบ S/N หรือ IMEI ให้เหลือ 5 หลักท้าย และแสดงเป็น ***XXXXX
-  function formatSerialInput(input) {
-    // กรองเอาเฉพาะภาษาอังกฤษ (A-Z, a-z) และตัวเลข (0-9) เท่านั้น
-    let cleanVal = input.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  // อัปเดตรุ่น (Model) ตามแบรนด์ที่เลือก
+  function updateModelDropdown(brandSelect) {
+    const brandVal = brandSelect.value;
+    const block = brandSelect.closest('.newItemBlock');
+    const modelSelect = block.querySelector('.newItem-model');
     
+    // เคลียร์ค่ารุ่นเดิมและลบช่องอื่นๆ ถ้ามี
+    modelSelect.innerHTML = '<option value="">-- เลือกรุ่น --</option>';
+    let nextSibling = modelSelect.nextElementSibling;
+    if (nextSibling && nextSibling.classList.contains('other-input')) nextSibling.remove();
+
+    if (configData.brandModels && configData.brandModels[brandVal]) {
+      const models = configData.brandModels[brandVal];
+      models.forEach(m => {
+        modelSelect.innerHTML += `<option value="${m}">${m}</option>`;
+      });
+    }
+    modelSelect.innerHTML += `<option value="อื่นๆ">อื่นๆ (พิมพ์ระบุเอง)</option>`;
+  }
+
+  function formatSerialInput(input) {
+    let cleanVal = input.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     if (cleanVal.length > 5) {
-      // ตัดเอาเฉพาะ 5 หลักสุดท้าย
       cleanVal = cleanVal.slice(-5);
     }
-    
-    // แสดงผลในรูปแบบ ***XXXXX
     if (cleanVal.length > 0) {
       input.value = '***' + cleanVal;
     } else {
@@ -337,14 +351,29 @@
     div.style.background = '#f0fdf4';
     
     let typeOpts = (configData.deviceTypes || []).map(t => `<option value="${t}">${t}</option>`).join('');
-    let brandOpts = (configData.brands || []).map(b => `<option value="${b}">${b}</option>`).join('');
+    let brandOpts = Object.keys(configData.brandModels || {}).map(b => `<option value="${b}">${b}</option>`).join('');
     let colorOpts = (configData.colors || []).map(c => `<option value="${c}">${c}</option>`).join('');
 
     div.innerHTML = `
       <h4 style="margin-top:0; color:#166534;">เพิ่มอุปกรณ์ใหม่ <button type="button" class="btn-remove" onclick="this.closest('.item-block').remove(); updateAddButton();">🗑️ ยกเลิก</button></h4>
       <div class="form-group"><label>ประเภทอุปกรณ์ *</label><select class="newItem-type" required onchange="handleDropdownChange(this)"><option value="">-- เลือกประเภท --</option>${typeOpts}</select></div>
-      <div class="form-group"><label>ยี่ห้อ *</label><select class="newItem-brand" required onchange="handleDropdownChange(this)"><option value="">-- เลือกรุ่น/ยี่ห้อ --</option>${brandOpts}</select></div>
-      <div class="form-group"><label>รุ่น / โมเดล *</label><input type="text" class="newItem-model" required placeholder="รุ่น / โมเดล"></div>
+      
+      <div class="form-group">
+        <label>ยี่ห้อ *</label>
+        <select class="newItem-brand" required onchange="updateModelDropdown(this); handleDropdownChange(this);">
+          <option value="">-- เลือกยี่ห้อ --</option>
+          ${brandOpts}
+          <option value="อื่นๆ">อื่นๆ (พิมพ์ระบุเอง)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>รุ่น / โมเดล *</label>
+        <select class="newItem-model" required onchange="handleDropdownChange(this)">
+          <option value="">-- กรุณาเลือกยี่หเภาก่อน --</option>
+        </select>
+      </div>
+
       <div class="form-group">
         <label>S/N หรือ IMEI (เลขท้าย 5 หลัก) *</label>
         <input type="text" class="newItem-serial" required placeholder="กรอก S/N หรือ IMEI" oninput="formatSerialInput(this)">
@@ -415,13 +444,28 @@
       for (const block of newBlocks) {
         const typeVal = getActualValue(block.querySelector('.newItem-type'));
         const brandVal = getActualValue(block.querySelector('.newItem-brand'));
-        const modelVal = block.querySelector('.newItem-model').value.trim();
-        const serialVal = block.querySelector('.newItem-serial').value.trim();
+        const modelVal = getActualValue(block.querySelector('.newItem-model'));
+        const serialVal = block.querySelector('.newItem-serial').value.trim().toUpperCase();
         
-        // ตรวจสอบความถูกต้องของ S/N ว่าต้องครบรูปแบบ ***XXXXX (ความยาวรวม 8 ตัวอักษร)
         if (!/^\*\*\*[A-Z0-9]{5}$/.test(serialVal)) {
-          throw new Error("หมายเลข S/N หรือ IMEI ของอุปกรณ์ใหม่ต้องกรองและแสดงผลเป็นเลขท้าย 5 หลักในรูปแบบ ***XXXXX ให้สมบูรณ์ค่ะ");
+          throw new Error("หมายเลข S/N หรือ IMEI ของอุปกรณ์ใหม่ต้องกรอกและแสดงผลเป็นเลขท้าย 5 หลักในรูปแบบ ***XXXXX ให้สมบูรณ์ค่ะ");
         }
+
+        // --- ระบบตรวจสอบ Blacklist และ Warn S/N ---
+        const raw5Digits = serialVal.replace('***', '');
+        if (configData.blacklistSN && configData.blacklistSN.includes(raw5Digits)) {
+          throw new Error(`หมายเลข S/N หรือ IMEI (${serialVal}) อยู่ในรายการไม่อญาตให้ใช้งาน เนื่องจากเป็นรูปแบบที่ไม่ถูกต้อง กรุณาตรวจสอบใหม่อีกครั้ง`);
+        }
+
+        if (configData.warnSN && configData.warnSN.includes(raw5Digits)) {
+          const confirmWarn = confirm(`⚠️ คำเตือน: หมายเลข S/N (${serialVal}) ตรงกับรูปแบบที่ต้องตรวจสอบเป็นพิเศษ ท่านมั่นใจหรือไม่ว่านี่คือ S/N ของจริงจากตัวเครื่อง?`);
+          if (!confirmWarn) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = "บันทึกข้อมูลการเปลี่ยนแปลง";
+            return;
+          }
+        }
+        // ----------------------------------------
 
         const colorVal = getActualValue(block.querySelector('.newItem-color'));
         newlyAddedItems.push(`[ประเภท: ${typeVal}] [ยี่ห้อ: ${brandVal}] [รุ่น: ${modelVal}] [S/N: ${serialVal}] [สี: ${colorVal}]`);
@@ -456,7 +500,7 @@
       
       const res = await fetchWithTimeout(GAS_WEB_APP_URL, { method: 'POST', body: payloadStr, redirect: 'follow' }, FETCH_TIMEOUT_MS);
       if (!res.ok) throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด`);
-      const data = await res.json();
+      const data =.json();
 
       if (data.status === "success") {
         setStatus(""); alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
