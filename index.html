@@ -191,10 +191,14 @@
         if (user.phone) document.getElementById('phone').value = String(user.phone).replace(/^'/, '');
         document.getElementById('pdpa').checked = (user.pdpa === "ยอมรับ");
         
+        // --- จุดที่เพิ่มความสว่างให้รูปภาพแสดงผลครับ ---
         existingCardImgUrl = user.cardImgUrl || '-';
-        if (existingCardImgUrl !== '-') {
-          const imgPrev = document.getElementById('cardImgPreview'); imgPrev.src = existingCardImgUrl; imgPrev.style.display = 'block';
+        if (existingCardImgUrl && existingCardImgUrl !== '-') {
+          const imgPrev = document.getElementById('cardImgPreview'); 
+          imgPrev.src = existingCardImgUrl; 
+          imgPrev.style.display = 'block';
         }
+        // ------------------------------------------
 
         renderStatusBadge(user.status);
         
