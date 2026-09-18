@@ -20,14 +20,22 @@
     .img-preview { max-width: 100%; height: 120px; object-fit: contain; margin-top: 5px; display: none; border: 1px solid #ddd; }
     .status-msg { text-align:center; font-size:13px; color:#0056b3; margin-top:8px; min-height:18px; }
     .file-size-hint { font-size:11px; color:#888; margin-top:3px; }
-    /* สไตล์สำหรับช่องกรอกข้อมูล "อื่นๆ" */
     .other-input { width: 100%; padding: 10px; border: 1px dashed #ff9900; border-radius: 6px; margin-top: 8px; box-sizing: border-box; font-size: 14px; background-color: #fff9f0; }
+    
+    /* ป้ายเตือนความปลอดภัย LINE */
+    .security-warning { background-color: #fff3cd; color: #856404; padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 20px; border: 1px solid #ffeeba; line-height: 1.5; }
   </style>
 </head>
 <body>
 
 <div class="card">
   <h2>ลงทะเบียน / อัปเดตข้อมูลอุปกรณ์ ทสภ.</h2>
+  
+  <div class="security-warning">
+    <strong>⚠️ คำเตือนความปลอดภัย:</strong><br>
+    การลงทะเบียนนี้จะถูกผูกกับ <b>"บัญชี LINE ส่วนตัวของคุณ"</b> เท่านั้น ห้ามทำรายการแทนบุคคลอื่นโดยเด็ดขาด ข้อมูลและประวัติการลงทะเบียนทั้งหมดจะถูกตรวจสอบเพื่อมาตรการรักษาความปลอดภัยของ ทสภ.
+  </div>
+
   <form id="regForm">
 
     <div class="form-group">
@@ -39,7 +47,8 @@
 
     <div class="form-group">
       <label>หมายเลขบัตรอนุญาตบุคคล *</label>
-      <input type="text" id="cardNumber" required placeholder="กรอกหมายเลขบัตรอนุญาต">
+      <!-- เพิ่ม oninput ให้เป็นตัวพิมพ์ใหญ่เสมอ -->
+      <input type="text" id="cardNumber" required placeholder="เช่น SUV/12345/12345/67" oninput="this.value = this.value.toUpperCase()">
     </div>
 
     <div class="form-group">
@@ -49,12 +58,12 @@
 
     <div class="form-group">
       <label>ชื่อ * (ไม่มีคำนำหน้านาม)</label>
-      <input type="text" id="firstName" required placeholder="ชื่อจริง">
+      <input type="text" id="firstName" required placeholder="กรอกเฉพาะชื่อจริง">
     </div>
 
     <div class="form-group">
       <label>นามสกุล *</label>
-      <input type="text" id="lastName" required placeholder="นามสกุล">
+      <input type="text" id="lastName" required placeholder="กรอกเฉพาะนามสกุล">
     </div>
 
     <div class="form-group">
@@ -107,11 +116,8 @@
   const IMG_TARGET_KB = 400;
   const FETCH_TIMEOUT_MS = 45000;
 
-  function setStatus(msg) {
-    document.getElementById('statusMsg').innerText = msg || '';
-  }
+  function setStatus(msg) { document.getElementById('statusMsg').innerText = msg || ''; }
 
-  // สร้าง Text Box เมื่อเลือก "อื่นๆ"
   function handleDropdownChange(selectElement) {
     let nextSibling = selectElement.nextElementSibling;
     if (selectElement.value === 'อื่นๆ') {
@@ -124,37 +130,25 @@
         selectElement.parentNode.insertBefore(input, selectElement.nextSibling);
       }
     } else {
-      if (nextSibling && nextSibling.classList.contains('other-input')) {
-        nextSibling.remove();
-      }
+      if (nextSibling && nextSibling.classList.contains('other-input')) nextSibling.remove();
     }
   }
 
-  // ดึงค่าจริง (ถ้าเป็นอื่นๆ ให้ดึงจาก Text Box แทน)
   function getActualValue(selectElement) {
     if (!selectElement) return "";
-    if (selectElement.value === 'อื่นๆ') {
-      return selectElement.nextElementSibling ? selectElement.nextElementSibling.value.trim() : 'อื่นๆ';
-    }
+    if (selectElement.value === 'อื่นๆ') return selectElement.nextElementSibling ? selectElement.nextElementSibling.value.trim() : 'อื่นๆ';
     return selectElement.value;
   }
 
   function fetchJSONP(url, callbackName) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      const timer = setTimeout(() => {
-        reject(new Error("หมดเวลาเชื่อมต่อ (JSONP timeout)"));
-        cleanup();
-      }, 15000);
+      const timer = setTimeout(() => { reject(new Error("หมดเวลาเชื่อมต่อ (JSONP timeout)")); cleanup(); }, 15000);
       function cleanup() {
         if (document.body.contains(script)) document.body.removeChild(script);
-        delete window[callbackName];
-        clearTimeout(timer);
+        delete window[callbackName]; clearTimeout(timer);
       }
-      window[callbackName] = function(data) {
-        resolve(data);
-        cleanup();
-      };
+      window[callbackName] = function(data) { resolve(data); cleanup(); };
       script.src = `${url}&callback=${callbackName}`;
       script.onerror = () => { reject(new Error("JSONP Request Failed")); cleanup(); };
       document.body.appendChild(script);
@@ -168,9 +162,7 @@
         const profile = await liff.getProfile();
         lineUserId = profile.userId;
         await fetchUserData(lineUserId);
-      } else {
-        liff.login();
-      }
+      } else { liff.login(); }
     }).catch(err => {
       console.error("LIFF init error:", err);
       if (itemIndex === 0) addItem();
@@ -184,10 +176,7 @@
         configData = data.config;
         populateDropdown('title', configData.titles);
       }
-    } catch (err) {
-      console.error("Fetch Config Error:", err);
-      setStatus("โหลดรายการตัวเลือกไม่สำเร็จ กรุณารีเฟรชหน้าใหม่");
-    }
+    } catch (err) { setStatus("โหลดรายการตัวเลือกไม่สำเร็จ กรุณารีเฟรชหน้าใหม่"); }
   }
 
   async function fetchUserData(userId) {
@@ -219,9 +208,7 @@
     const select = document.getElementById(elemId);
     select.innerHTML = '<option value="">-- เลือกรายการ --</option>';
     if (optionsList) {
-      optionsList.forEach(opt => {
-        select.innerHTML += `<option value="${opt}">${opt}</option>`;
-      });
+      optionsList.forEach(opt => { select.innerHTML += `<option value="${opt}">${opt}</option>`; });
     }
   }
 
@@ -233,27 +220,14 @@
     div.className = 'item-block';
     div.id = `item_${itemIndex}`;
 
-    let types = (itemIndex === 1)
-      ? (configData.deviceTypes || []).filter(t => t.includes("โทรศัพท์") || t.includes("แท็บเล็ต") || t.includes("iPad"))
-      : (configData.deviceTypes || []);
-
+    let types = (itemIndex === 1) ? (configData.deviceTypes || []).filter(t => t.includes("โทรศัพท์") || t.includes("แท็บเล็ต") || t.includes("iPad")) : (configData.deviceTypes || []);
     let typeOpts = types.map(t => `<option value="${t}">${t}</option>`).join('');
     let brandOpts = (configData.brands || []).map(b => `<option value="${b}">${b}</option>`).join('');
     let colorOpts = (configData.colors || []).map(c => `<option value="${c}">${c}</option>`).join('');
 
-    // ควบคุมการแสดงผลช่องแนบรูป (รายการ 1 ไม่ต้องมีรูป, รายการ 2-5 มีรูป)
-    let imageSectionHTML = '';
-    if (itemIndex > 1) {
-      imageSectionHTML = `
-        <div class="form-group">
-          <label>6. ถ่ายรูปอุปกรณ์ (ถ้ามี)</label>
-          <input type="file" class="item-img" accept="image/*" onchange="previewImage(this, 'itemImgPrev_${itemIndex}')">
-          <img id="itemImgPrev_${itemIndex}" class="img-preview">
-        </div>
-      `;
-    } else {
-      imageSectionHTML = `<div style="font-size: 13px; color: #d9534f; margin-bottom: 15px;">* รายการที่ 1 ไม่ต้องแนบรูปถ่ายอุปกรณ์</div>`;
-    }
+    let imageSectionHTML = (itemIndex > 1) 
+      ? `<div class="form-group"><label>6. ถ่ายรูปอุปกรณ์ (ถ้ามี)</label><input type="file" class="item-img" accept="image/*" onchange="previewImage(this, 'itemImgPrev_${itemIndex}')"><img id="itemImgPrev_${itemIndex}" class="img-preview"></div>` 
+      : `<div style="font-size: 13px; color: #d9534f; margin-bottom: 15px;">* รายการที่ 1 ไม่ต้องแนบรูปถ่ายอุปกรณ์</div>`;
 
     div.innerHTML = `
       <h4 style="margin-top:0;">รายการที่ ${itemIndex}</h4>
@@ -281,13 +255,9 @@
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = e => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = e.target.result;
+        const img = new Image(); img.onload = () => resolve(img); img.onerror = reject; img.src = e.target.result;
       };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.onerror = reject; reader.readAsDataURL(file);
     });
   }
 
@@ -295,14 +265,10 @@
     let { width, height } = img;
     if (width > IMG_MAX_DIMENSION || height > IMG_MAX_DIMENSION) {
       const ratio = Math.min(IMG_MAX_DIMENSION / width, IMG_MAX_DIMENSION / height);
-      width = Math.round(width * ratio);
-      height = Math.round(height * ratio);
+      width = Math.round(width * ratio); height = Math.round(height * ratio);
     }
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, width, height);
+    const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
     return canvas.toDataURL('image/jpeg', quality);
   }
 
@@ -310,13 +276,10 @@
     if (!file) return null;
     try {
       const img = await loadImageFromFile(file);
-      let quality = 0.8;
-      let dataUrl = drawToDataUrl(img, quality);
+      let quality = 0.8; let dataUrl = drawToDataUrl(img, quality);
       let sizeKB = (dataUrl.length * 0.75) / 1024;
       while (sizeKB > IMG_TARGET_KB && quality > 0.3) {
-        quality -= 0.1;
-        dataUrl = drawToDataUrl(img, quality);
-        sizeKB = (dataUrl.length * 0.75) / 1024;
+        quality -= 0.1; dataUrl = drawToDataUrl(img, quality); sizeKB = (dataUrl.length * 0.75) / 1024;
       }
       return dataUrl;
     } catch (err) { return await getBase64Raw(file); }
@@ -324,18 +287,14 @@
 
   function getBase64Raw(file) {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
+      const reader = new FileReader(); reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result); reader.onerror = reject;
     });
   }
 
   function fetchWithTimeout(url, options, timeoutMs) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    return fetch(url, { ...options, signal: controller.signal })
-      .finally(() => clearTimeout(timer));
+    const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
   }
 
   document.getElementById('regForm').addEventListener('submit', async function (e) {
@@ -344,6 +303,54 @@
     submitBtn.disabled = true;
 
     try {
+      // ---------------------------------------------------------
+      // VALIDATION: ตรวจสอบความถูกต้องของข้อมูลตามกฎอย่างเคร่งครัด
+      // ---------------------------------------------------------
+      
+      // 1. ตรวจสอบหมายเลขบัตรอนุญาต
+      const cardNumberVal = document.getElementById('cardNumber').value.trim().toUpperCase();
+      function isValidCardIdFormat(cardId) {
+        const patterns = [
+          /^\d{6}\/\d{5}\/\d{2}$/,
+          /^(SUV|DMK|CEI|CNX|HKT|HDY)\/\d{5}\/\d{5}\/\d{2}$/,
+          /^(SUV|DMK|CEI|CNX|HKT|HDY)\d{6}\/\d{5}[A-Z]$/,
+          /^(SUV|DMK|CEI|CNX|HKT|HDY)\/\d{8}\/\d{5}\/\d{2}$/
+        ];
+        return patterns.some(p => p.test(cardId));
+      }
+      if (!isValidCardIdFormat(cardNumberVal)) {
+        throw new Error("รูปแบบ 'หมายเลขบัตรอนุญาต' ไม่ถูกต้อง\nกรุณาตรวจสอบให้ตรงกับหน้าบัตร\n(เช่น SUV/12345/12345/67 หรือ 123456/12345/67)");
+      }
+
+      // 2. ตรวจสอบชื่อ (ห้ามเว้นวรรค, ห้ามมีคำนำหน้า)
+      const firstNameVal = document.getElementById('firstName').value.trim();
+      const forbiddenTitles = ['นาย', 'นาง', 'นางสาว', 'น.ส.', 'ด.ช.', 'ด.ญ.', 'ว่าที่ร้อย'];
+      if (forbiddenTitles.some(t => firstNameVal.startsWith(t)) || firstNameVal.includes(' ')) {
+        throw new Error("ช่อง 'ชื่อ' กรุณากรอกเฉพาะชื่อจริงเท่านั้น!\nห้ามใส่คำนำหน้านาม และห้ามใส่นามสกุลรวมในช่องนี้ค่ะ");
+      }
+
+      // 3. ตรวจสอบนามสกุล (ห้ามเว้นวรรค)
+      const lastNameVal = document.getElementById('lastName').value.trim();
+      if (lastNameVal.includes(' ')) {
+        throw new Error("ช่อง 'นามสกุล' ห้ามเว้นวรรค หรือห้ามใส่ชื่อรวมมาในช่องนี้ค่ะ");
+      }
+
+      // 4. ตรวจสอบเบอร์โทรศัพท์
+      const phoneVal = document.getElementById('phone').value.trim();
+      if (!/^0[689]\d{8}$/.test(phoneVal)) {
+        throw new Error("รูปแบบ 'เบอร์โทรศัพท์' ไม่ถูกต้อง\nต้องขึ้นต้นด้วย 06, 08, 09 และมี 10 หลักเท่านั้นค่ะ");
+      }
+
+      // 5. ตรวจสอบอีเมล
+      const emailVal = document.getElementById('email').value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+        throw new Error("รูปแบบ 'อีเมล' ไม่ถูกต้องค่ะ");
+      }
+
+      // ---------------------------------------------------------
+      // สิ้นสุด VALIDATION
+      // ---------------------------------------------------------
+
       setStatus("กำลังเตรียมรูปหน้าบัตร...");
       const cardImgFile = document.getElementById('cardImg').files[0];
       const cardImgBase64 = cardImgFile ? await compressImageFile(cardImgFile) : null;
@@ -376,14 +383,14 @@
 
       const payload = {
         lineUserId: lineUserId,
-        cardNumber: document.getElementById('cardNumber').value.trim(),
+        cardNumber: cardNumberVal, // ใช้ค่าที่ผ่านการทำ Uppercase แล้ว
         title: getActualValue(document.getElementById('title')),
-        firstName: document.getElementById('firstName').value.trim(),
-        lastName: document.getElementById('lastName').value.trim(),
-        email: document.getElementById('email').value.trim(),
+        firstName: firstNameVal,
+        lastName: lastNameVal,
+        email: emailVal,
         company: document.getElementById('company').value.trim(),
         role: document.getElementById('role').value.trim(),
-        phone: document.getElementById('phone').value.trim(),
+        phone: phoneVal,
         cardImgBase64: cardImgBase64,
         existingCardImgUrl: existingCardImgUrl,
         items: items,
@@ -391,27 +398,18 @@
       };
 
       const payloadStr = JSON.stringify(payload);
-      if (payloadStr.length > 15 * 1024 * 1024) {
-        throw new Error(`ขนาดข้อมูลใหญ่เกินไป กรุณาลดจำนวนรูปภาพ หรือถ่ายรูปใหม่`);
-      }
+      if (payloadStr.length > 15 * 1024 * 1024) throw new Error(`ขนาดข้อมูลใหญ่เกินไป กรุณาลดจำนวนรูปภาพ หรือถ่ายรูปใหม่`);
 
       setStatus("กำลังส่งข้อมูล กรุณารอสักครู่...");
       submitBtn.innerText = "กำลังบันทึก...";
 
-      const res = await fetchWithTimeout(GAS_WEB_APP_URL, {
-        method: 'POST',
-        body: payloadStr,
-        redirect: 'follow'
-      }, FETCH_TIMEOUT_MS);
-
+      const res = await fetchWithTimeout(GAS_WEB_APP_URL, { method: 'POST', body: payloadStr, redirect: 'follow' }, FETCH_TIMEOUT_MS);
       if (!res.ok) throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${res.status})`);
       const data = await res.json();
 
       if (data.status === "success") {
         setStatus("");
         alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
-
-        // ฟีเจอร์ใหม่: รีเซ็ตฟอร์มและเคลียร์หน้าจอทั้งหมดเตรียมพร้อมสำหรับรายการต่อไป
         document.getElementById('regForm').reset();
         document.getElementById('cardImgPreview').style.display = 'none';
         document.getElementById('cardImgPreview').src = '';
@@ -420,7 +418,6 @@
         itemIndex = 0;
         addItem(); 
         window.scrollTo({ top: 0, behavior: 'smooth' });
-
       } else {
         throw new Error(data.message || "ไม่ทราบสาเหตุ");
       }
@@ -430,7 +427,7 @@
       let userMsg = err.message || err.toString();
       if (err.name === 'AbortError') userMsg = "หมดเวลาเชื่อมต่อ เครือข่ายอาจช้าหรือไม่เสถียร กรุณาลองใหม่อีกครั้ง";
       setStatus("");
-      alert("เกิดข้อผิดพลาด: " + userMsg);
+      alert("เกิดข้อผิดพลาด: \n" + userMsg);
     } finally {
       submitBtn.disabled = false;
       submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน";
