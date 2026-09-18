@@ -13,11 +13,11 @@
     label { font-weight: bold; display: block; margin-bottom: 5px; color: #333; font-size: 14px; }
     input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
     input:disabled, select:disabled { background-color: #e9ecef; cursor: not-allowed; }
-    .item-block { border: 1px dashed #0056b3; padding: 15px; border-radius: 8px; background: #f0f7ff; margin-bottom: 15px; position: relative; display: flex; justify-content: space-between; align-items: center; }
+    .item-block { border: 1px dashed #0056b3; padding: 15px; border-radius: 8px; background: #f0f7ff; margin-bottom: 15px; position: relative; }
     .btn { background-color: #0056b3; color: white; padding: 12px; border: none; border-radius: 6px; width: 100%; font-size: 16px; cursor: pointer; font-weight: bold; }
     .btn:disabled { background-color: #cccccc; cursor: not-allowed; }
-    .btn-add { background-color: #28a745; margin-bottom: 15px; width: auto; padding: 8px 15px; font-size: 14px; }
-    .btn-remove { background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .btn-add { background-color: #28a745; margin-bottom: 15px; }
+    .btn-remove { background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; float: right; }
     .btn-edit { background-color: #ffc107; color: #333; margin-bottom: 15px; }
     .pdpa-box { font-size: 13px; color: #555; background: #eee; padding: 10px; border-radius: 6px; margin-bottom: 15px; }
     .img-preview { max-width: 100%; height: 120px; object-fit: contain; margin-top: 5px; display: none; border: 1px solid #ddd; }
@@ -96,7 +96,7 @@
 
     <div id="itemsContainer"></div>
 
-    <button type="button" id="btnAddItem" class="btn btn-add" style="display:none;" onclick="addNewItemBlock()">+ เพิ่มรายการอุปกรณ์</button>
+    <button type="button" id="btnAddItem" class="btn btn-add" style="display:none;" onclick="addNewItemBlock()">+ เพิ่มรายการอุปกรณ์ใหม่</button>
 
     <div class="pdpa-box">
       <input type="checkbox" id="pdpa" required style="width: auto;" disabled>
@@ -105,8 +105,8 @@
       </label>
     </div>
 
-    <button type="button" id="btnEdit" class="btn btn-edit" style="display:none;" onclick="enableEditing()">✏️ แก้ไขข้อมูล</button>
-    <button type="submit" id="btnSubmit" class="btn" style="display:none;">บันทึกข้อมูลลงทะเบียน</button>
+    <button type="button" id="btnEdit" class="btn btn-edit" style="display:none;" onclick="enableEditing()">✏️ แก้ไขข้อมูล / จัดการอุปกรณ์</button>
+    <button type="submit" id="btnSubmit" class="btn" style="display:none;">บันทึกข้อมูลการเปลี่ยนแปลง</button>
     <div id="statusMsg" class="status-msg"></div>
   </form>
 </div>
@@ -116,7 +116,7 @@
   let configData = {};
   let existingCardImgUrl = '-';
   let isRegistered = false;
-  let currentStoredItems = []; // เก็บอาเรย์อุปกรณ์เดิมที่ดึงมาจากชีต
+  let currentStoredItems = []; 
   
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec";
   const IMG_MAX_DIMENSION = 1280, IMG_TARGET_KB = 400, FETCH_TIMEOUT_MS = 45000;
@@ -128,7 +128,7 @@
     if (selectElement.value === 'อื่นๆ') {
       if (!nextSibling || !nextSibling.classList.contains('other-input')) {
         const input = document.createElement('input'); input.type = 'text'; input.className = 'other-input'; input.placeholder = 'โปรดระบุข้อมูล...'; input.required = true;
-        selectElement.parentNode.insertBefore(input, selectElement.nextSibling);
+        selectElement.parentNode.insertBefore(input, selectElement.nextElementSibling);
       }
     } else { if (nextSibling && nextSibling.classList.contains('other-input')) nextSibling.remove(); }
   }
@@ -198,7 +198,6 @@
 
         renderStatusBadge(user.status);
         
-        // เก็บรายการอุปกรณ์เดิม
         currentStoredItems = [user.item1, user.item2, user.item3, user.item4, user.item5].filter(i => i && i !== '-');
         renderStoredItemsView(user.status);
 
@@ -228,6 +227,7 @@
     container.innerHTML = `<div class="status-badge ${badgeClass}">สถานะปัจจุบัน: ${status}</div>`;
   }
 
+  // แสดงรายการเดิมแบบ Read-only พร้อมปุ่มลบรายชิ้น
   function renderStoredItemsView(status) {
     const container = document.getElementById('itemsContainer');
     container.innerHTML = '';
@@ -241,7 +241,6 @@
     });
   }
 
-  // ฟังก์ชันลบรายการอุปกรณ์เดิมแล้วส่งอัปเดตอัตโนมัติทันที
   async function removeStoredItemIndex(index) {
     if (currentStoredItems.length <= 1) {
       alert("ไม่สามารถลบจนหมดได้ ระบบต้องมีอุปกรณ์อย่างน้อย 1 รายการค่ะ");
@@ -251,7 +250,6 @@
 
     currentStoredItems.splice(index, 1);
     
-    // เตรียมส่งข้อมูลอัปเดตทันที
     try {
       setStatus("กำลังอัปเดตรายการ...");
       const payload = {
@@ -265,7 +263,7 @@
         role: document.getElementById('role').value.trim(),
         phone: "'" + document.getElementById('phone').value.trim(),
         existingCardImgUrl: existingCardImgUrl,
-        itemsRaw: currentStoredItems, // ส่งอาเรย์สตริงเดิมที่เหลืออยู่
+        itemsRaw: currentStoredItems, 
         pdpaAccepted: document.getElementById('pdpa').checked
       };
 
@@ -274,26 +272,36 @@
       if (data.status === "success") {
         alert("ลบรายการเรียบร้อยแล้วค่ะ!");
         location.reload();
-      } else {
-        throw new Error(data.message);
-      }
+      } else { throw new Error(data.message); }
     } catch (err) {
       alert("เกิดข้อผิดพลาด: " + err.message);
       setStatus("");
     }
   }
 
+  // ปลดล็อกฟอร์มเพื่อให้แก้ข้อมูลส่วนตัวได้ และเปิดช่องให้เพิ่มอุปกรณ์ใหม่ต่อท้ายได้โดยของเก่าไม่หาย
   function enableEditing() {
     const inputs = document.querySelectorAll('#regForm input, #regForm select');
     inputs.forEach(input => input.disabled = false);
     document.getElementById('btnEdit').style.display = 'none';
     document.getElementById('btnSubmit').style.display = 'block';
     
-    // แปลงมุมมองอุปกรณ์เป็นแบบฟอร์มให้กรอกเพิ่มได้
+    // แปลงรายการเดิมให้เป็นกล่องข้อความธรรมดา หรือคงไว้ให้อ่าน แต่เปิดปุ่ม "+ เพิ่มรายการอุปกรณ์ใหม่"
     const container = document.getElementById('itemsContainer');
     container.innerHTML = '';
-    currentStoredItems = []; // เคลียร์เพื่อเริ่มฟอร์มใหม่
-    addNewItemBlock();
+    
+    // แสดงรายการเก่าให้อ่านเตือนความจำก่อน
+    currentStoredItems.forEach((itemStr, index) => {
+      const div = document.createElement('div');
+      div.className = 'item-block';
+      div.style.background = '#e2e8f0';
+      div.innerHTML = `<span style="font-size:14px; font-weight:500; color:#555;">[รายการเดิม ${index + 1}] ${itemStr}</span>`;
+      container.appendChild(div);
+    });
+
+    if (currentStoredItems.length < 5) {
+      document.getElementById('btnAddItem').style.display = 'block';
+    }
   }
 
   function populateDropdown(elemId, optionsList) {
@@ -301,33 +309,34 @@
     if (optionsList) optionsList.forEach(opt => { select.innerHTML += `<option value="${opt}">${opt}</option>`; });
   }
 
+  // เพิ่มบล็อกกรอกอุปกรณ์ใหม่ต่อท้าย
   function addNewItemBlock() {
-    const currentCount = document.querySelectorAll('.item-block').length;
-    if (currentCount >= 5) return alert("ลงทะเบียนได้สูงสุด 5 รายการเท่านั้นค่ะ");
+    const totalCount = currentStoredItems.length + document.querySelectorAll('.newItemBlock').length;
+    if (totalCount >= 5) return alert("ลงทะเบียนได้สูงสุด 5 รายการเท่านั้นค่ะ");
     
     const div = document.createElement('div');
-    div.className = 'item-block';
-    div.style.display = 'block';
+    div.className = 'item-block newItemBlock';
+    div.style.background = '#f0fdf4';
     
     let typeOpts = (configData.deviceTypes || []).map(t => `<option value="${t}">${t}</option>`).join('');
     let brandOpts = (configData.brands || []).map(b => `<option value="${b}">${b}</option>`).join('');
     let colorOpts = (configData.colors || []).map(c => `<option value="${c}">${c}</option>`).join('');
 
     div.innerHTML = `
-      <h4 style="margin-top:0; width:100%;">รายการใหม่ <button type="button" class="btn-remove" style="float:right;" onclick="this.closest('.item-block').remove(); updateAddButton();">🗑️ ลบ</button></h4>
-      <div class="form-group" style="width:100%;"><label>ประเภทอุปกรณ์ *</label><select class="item-type" required onchange="handleDropdownChange(this)"><option value="">-- เลือกประเภท --</option>${typeOpts}</select></div>
-      <div class="form-group" style="width:100%;"><label>ยี่ห้อ *</label><select class="item-brand" required onchange="handleDropdownChange(this)"><option value="">-- เลือกรุ่น/ยี่ห้อ --</option>${brandOpts}</select></div>
-      <div class="form-group" style="width:100%;"><label>รุ่น / โมเดล *</label><input type="text" class="item-model" required placeholder="รุ่น / โมเดล"></div>
-      <div class="form-group" style="width:100%;"><label>S/N หรือ IMEI *</label><input type="text" class="item-serial" required placeholder="S/N หรือ IMEI"></div>
-      <div class="form-group" style="width:100%;"><label>สี *</label><select class="item-color" required onchange="handleDropdownChange(this)"><option value="">-- เลือกสี --</option>${colorOpts}</select></div>
+      <h4 style="margin-top:0; color:#166534;">เพิ่มอุปกรณ์ใหม่ <button type="button" class="btn-remove" onclick="this.closest('.item-block').remove(); updateAddButton();">🗑️ ยกเลิก</button></h4>
+      <div class="form-group"><label>ประเภทอุปกรณ์ *</label><select class="newItem-type" required onchange="handleDropdownChange(this)"><option value="">-- เลือกประเภท --</option>${typeOpts}</select></div>
+      <div class="form-group"><label>ยี่ห้อ *</label><select class="newItem-brand" required onchange="handleDropdownChange(this)"><option value="">-- เลือกรุ่น/ยี่ห้อ --</option>${brandOpts}</select></div>
+      <div class="form-group"><label>รุ่น / โมเดล *</label><input type="text" class="newItem-model" required placeholder="รุ่น / โมเดล"></div>
+      <div class="form-group"><label>S/N หรือ IMEI *</label><input type="text" class="newItem-serial" required placeholder="S/N หรือ IMEI"></div>
+      <div class="form-group"><label>สี *</label><select class="newItem-color" required onchange="handleDropdownChange(this)"><option value="">-- เลือกสี --</option>${colorOpts}</select></div>
     `;
     document.getElementById('itemsContainer').appendChild(div);
     updateAddButton();
   }
 
   function updateAddButton() {
-    const count = document.querySelectorAll('.item-block').length;
-    document.getElementById('btnAddItem').style.display = (count >= 5) ? 'none' : 'block';
+    const totalCount = currentStoredItems.length + document.querySelectorAll('.newItemBlock').length;
+    document.getElementById('btnAddItem').style.display = (totalCount >= 5) ? 'none' : 'block';
   }
 
   function previewImage(input, previewId) {
@@ -382,8 +391,6 @@
 
     try {
       const cardNumberVal = document.getElementById('cardNumber').value.trim().toUpperCase();
-      
-      // คืนค่าฟังก์ชันตรวจสอบรูปแบบหมายเลขบัตรที่ถูกต้องและครบถ้วนตามที่คุณกำหนด
       function isValidCardIdFormat(cardId) {
         const patterns = [
           /^\d{6}\/\d{5}\/\d{2}$/,
@@ -411,35 +418,34 @@
       const phoneVal = document.getElementById('phone').value.trim();
       if (!/^0[689]\d{8}$/.test(phoneVal)) throw new Error("รูปแบบ 'เบอร์โทรศัพท์' ไม่ถูกต้อง");
 
-      // ตรวจสอบว่าต้องมีอย่างน้อย 1 อุปกรณ์ก่อนบันทึก
-      const blocks = document.querySelectorAll('.item-block');
-      if (blocks.length === 0) {
-        throw new Error("กรุณากรอกข้อมูลและเพิ่มรายการอุปกรณ์อย่างน้อย 1 รายการค่ะ");
+      // รวมรายการเดิมที่ยังไม่ถูกลบ เข้ากับรายการใหม่ที่กรอกเพิ่ม
+      const newBlocks = document.querySelectorAll('.newItemBlock');
+      const newlyAddedItems = [];
+      newBlocks.forEach(block => {
+        const typeVal = getActualValue(block.querySelector('.newItem-type'));
+        const brandVal = getActualValue(block.querySelector('.newItem-brand'));
+        const modelVal = block.querySelector('.newItem-model').value.trim();
+        const serialVal = block.querySelector('.newItem-serial').value.trim();
+        const colorVal = getActualValue(block.querySelector('.newItem-color'));
+        newlyAddedItems.push(`[ประเภท: ${typeVal}] [ยี่ห้อ: ${brandVal}] [รุ่น: ${modelVal}] [S/N: ${serialVal}] [สี: ${colorVal}]`);
+      });
+
+      const finalItemsList = [...currentStoredItems, ...newlyAddedItems];
+      if (finalItemsList.length === 0) {
+        throw new Error("กรุณามีรายการอุปกรณ์อย่างน้อย 1 รายการก่อนทำการบันทึกค่ะ");
       }
 
       setStatus("กำลังประมวลผล...");
       const cardImgFile = document.getElementById('cardImg').files[0];
       const cardImgBase64 = cardImgFile ? await compressImageFile(cardImgFile) : null;
 
-      const items = [];
-      blocks.forEach(block => {
-        const typeSelect = block.querySelector('.item-type');
-        if (typeSelect) {
-          items.push({
-            type: getActualValue(typeSelect),
-            brand: getActualValue(block.querySelector('.item-brand')),
-            model: block.querySelector('.item-model').value.trim(),
-            serial: block.querySelector('.item-serial').value.trim(),
-            color: getActualValue(block.querySelector('.item-color'))
-          });
-        }
-      });
-
       const payload = {
         lineUserId: lineUserId, cardNumber: cardNumberVal, title: getActualValue(document.getElementById('title')),
         firstName: firstNameVal, lastName: lastNameVal, email: document.getElementById('email').value.trim(),
         company: document.getElementById('company').value.trim(), role: document.getElementById('role').value.trim(),
-        phone: "'" + phoneVal, cardImgBase64: cardImgBase64, existingCardImgUrl: existingCardImgUrl, items: items, pdpaAccepted: document.getElementById('pdpa').checked
+        phone: "'" + phoneVal, cardImgBase64: cardImgBase64, existingCardImgUrl: existingCardImgUrl, 
+        itemsRaw: finalItemsList, // ส่งรายการทั้งหมดรวมกันไปเซฟ
+        pdpaAccepted: document.getElementById('pdpa').checked
       };
 
       const payloadStr = JSON.stringify(payload);
@@ -462,7 +468,7 @@
       let userMsg = err.message || err.toString();
       if (err.name === 'AbortError') userMsg = "หมดเวลาเชื่อมต่อ กรุณาลองใหม่อีกครั้ง";
       setStatus(""); alert("เกิดข้อผิดพลาด: \n" + userMsg);
-    } finally { submitBtn.disabled = false; submitBtn.innerText = "บันทึกข้อมูลลงทะเบียน"; }
+    } finally { submitBtn.disabled = false; submitBtn.innerText = "บันทึกข้อมูลการเปลี่ยนแปลง"; }
   });
 </script>
 
