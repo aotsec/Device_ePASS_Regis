@@ -14,8 +14,6 @@
     .menu-btn:hover { background-color: #003366; color: white; }
     .menu-btn-secondary { border-color: #17a2b8; color: #17a2b8; }
     .menu-btn-secondary:hover { background-color: #17a2b8; color: white; }
-    .menu-btn-danger { border-color: #dc3545; color: #dc3545; }
-    .menu-btn-danger:hover { background-color: #dc3545; color: white; }
     .desc-text { font-size: 13px; color: #666; text-align: center; margin-bottom: 25px; line-height: 1.5; }
 
     .form-group { margin-bottom: 15px; position: relative; }
@@ -61,9 +59,6 @@
   <button class="menu-btn" onclick="startSelfRegistration()">👤 ลงทะเบียนอุปกรณ์ของตนเอง</button>
   <button class="menu-btn menu-btn-secondary" onclick="showVipSearch()">
     👥 ลงทะเบียนแทนบุคคลอื่น<br><span style="font-size: 12px; font-weight: normal;">(สำหรับผู้บังคับบัญชา / ผู้ไม่สะดวกใช้ LINE)</span>
-  </button>
-  <button class="menu-btn menu-btn-danger" onclick="clearActiveSession()">
-    🚪 ออกจากระบบ / เคลียร์เซสชันอุปกรณ์อื่น
   </button>
 </div>
 
@@ -173,13 +168,6 @@
   let targetVipCard = '';
   const invalidFields = new Set();
   
-  // สร้าง Device Token ประจำเบราว์เซอร์นี้ เพื่อแยกแยะว่าเปิดอยู่เครื่องไหน
-  let deviceToken = localStorage.getItem('deviceToken');
-  if (!deviceToken) {
-    deviceToken = 'Dev_' + Math.random().toString(36.substring(2)) + Date.now();
-    localStorage.setItem('deviceToken', deviceToken);
-  }
-  
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec";
   const FETCH_TIMEOUT_MS = 45000;
 
@@ -212,37 +200,10 @@
       if (liff.isLoggedIn()) {
         const profile = await liff.getProfile(); 
         lineUserId = profile.userId; 
-        await verifyAndStartSession();
+        showScreen('menuScreen');
       } else { liff.login(); }
     }).catch(err => { console.error(err); alert("ไม่สามารถเชื่อมต่อ LINE ได้"); });
   };
-
-  async function verifyAndStartSession() {
-    try {
-      const url = `${GAS_WEB_APP_URL}?action=checkSession&lineUserId=${lineUserId}&deviceToken=${deviceToken}`;
-      const res = await fetchJSONP(url);
-      if (res.status === "locked") {
-        alert(res.message);
-        document.getElementById('loadingScreen').innerHTML = `<h2 style="color: #dc3545;">⚠️ ถูกจำกัดการเข้าใช้งาน</h2><p class="desc-text">${res.message}</p>`;
-        return;
-      }
-      showScreen('menuScreen');
-    } catch (err) {
-      showScreen('menuScreen'); // ถ้าเช็กไม่ผ่านให้เข้าได้ปกติเผื่อเน็ตหลุด
-    }
-  }
-
-  async function clearActiveSession() {
-    if (!confirm("ต้องการออกจากระบบและเคลียร์เซสชันในอุปกรณ์อื่นทั้งหมดใช่หรือไม่?")) return;
-    try {
-      const url = `${GAS_WEB_APP_URL}?action=clearSession&lineUserId=${lineUserId}`;
-      await fetchJSONP(url);
-      alert("เคลียร์เซสชันเรียบร้อยแล้วค่ะ สามารถเข้าใช้งานใหม่ได้ทันที");
-      location.reload();
-    } catch (err) {
-      alert("เกิดข้อผิดพลาดในการเคลียร์เซสชัน");
-    }
-  }
 
   async function fetchConfig() {
     try {
@@ -718,7 +679,7 @@
       const payload = {
         lineUserId: lineUserId, mode: currentMode, cardNumber: cardNumberVal, 
         title: currentFormValues.title, firstName: currentFormValues.firstName, 
-        lastName: currentFormValues.lastName, email: currentFormValues.email,
+        lastName: currentFormValue.lastName, email: currentFormValues.email,
         company: currentFormValues.company, role: currentFormValues.role,
         phone: "'" + currentFormValues.phone, cardImgBase64: cardImgBase64, existingCardImgUrl: existingCardImgUrl, 
         itemsRaw: finalItemsList, pdpaAccepted: document.getElementById('pdpa').checked
