@@ -16,10 +16,15 @@
     .menu-btn-secondary:hover { background-color: #17a2b8; color: white; }
     .desc-text { font-size: 13px; color: #666; text-align: center; margin-bottom: 25px; line-height: 1.5; }
 
-    .form-group { margin-bottom: 15px; }
+    .form-group { margin-bottom: 15px; position: relative; }
     label { font-weight: bold; display: block; margin-bottom: 5px; color: #333; font-size: 14px; }
-    input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
-    input:disabled, select:disabled { background-color: #e9ecef; cursor: not-allowed; }
+    input, select { width: 100%; padding: 10px 35px 10px 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; background-color: #fff; }
+    input:disabled, select:disabled { background-color: transparent; border: none; color: #333; font-weight: 500; padding-left: 0; }
+    
+    /* สไตล์ปุ่มดินสอแก้ไขรายฟิลด์ */
+    .edit-field-btn { position: absolute; right: 10px; top: 32px; background: none; border: none; cursor: pointer; font-size: 16px; color: #0056b3; padding: 2px 5px; }
+    .edit-field-btn:hover { color: #003366; transform: scale(1.1); }
+
     .item-block { border: 1px dashed #0056b3; padding: 15px; border-radius: 8px; background: #f0f7ff; margin-bottom: 15px; position: relative; }
     .btn { background-color: #0056b3; color: white; padding: 12px; border: none; border-radius: 6px; width: 100%; font-size: 16px; cursor: pointer; font-weight: bold; }
     .btn:disabled { background-color: #cccccc; cursor: not-allowed; }
@@ -88,44 +93,52 @@
     <div class="form-group">
       <label>หมายเลขบัตรอนุญาตบุคคล *</label>
       <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" disabled oninput="this.value = this.value.toUpperCase()" onblur="validateDuplicate('cardNumber')">
+      <button type="button" class="edit-field-btn" onclick="unlockField('cardNumber', this)" title="แก้ไขข้อมูล">✏️</button>
       <div id="err-cardNumber" class="error-text"></div>
     </div>
 
     <div class="form-group">
       <label>คำนำหน้าชื่อ *</label>
       <select id="title" required disabled onchange="handleDropdownChange(this)"><option value="">-- กำลังโหลดรายการ --</option></select>
+      <button type="button" class="edit-field-btn" onclick="unlockField('title', this)" title="แก้ไขข้อมูล">✏️</button>
     </div>
 
     <div class="form-group">
       <label>ชื่อ * (ไม่มีคำนำหน้านาม และห้ามเว้นวรรค)</label>
       <input type="text" id="firstName" required placeholder="กรอกเฉพาะชื่อจริง" disabled onblur="validateDuplicate('fullName')">
+      <button type="button" class="edit-field-btn" onclick="unlockField('firstName', this)" title="แก้ไขข้อมูล">✏️</button>
     </div>
 
     <div class="form-group">
       <label>นามสกุล *</label>
       <input type="text" id="lastName" required placeholder="กรอกเฉพาะนามสกุล" disabled onblur="validateDuplicate('fullName')">
+      <button type="button" class="edit-field-btn" onclick="unlockField('lastName', this)" title="แก้ไขข้อมูล">✏️</button>
       <div id="err-fullName" class="error-text"></div>
     </div>
 
     <div class="form-group">
       <label>อีเมล (E-Mail) *</label>
       <input type="email" id="email" required placeholder="example@email.com" disabled onblur="validateDuplicate('email')">
+      <button type="button" class="edit-field-btn" onclick="unlockField('email', this)" title="แก้ไขข้อมูล">✏️</button>
       <div id="err-email" class="error-text"></div>
     </div>
 
     <div class="form-group">
       <label>บริษัท *</label>
       <input type="text" id="company" required placeholder="ระบุชื่อบริษัท/หน่วยงาน" disabled>
+      <button type="button" class="edit-field-btn" onclick="unlockField('company', this)" title="แก้ไขข้อมูล">✏️</button>
     </div>
 
     <div class="form-group">
       <label>หน้าที่ หรือ สังกัด *</label>
       <input type="text" id="role" required placeholder="ระบุหน้าที่ หรือสังกัด" disabled>
+      <button type="button" class="edit-field-btn" onclick="unlockField('role', this)" title="แก้ไขข้อมูล">✏️</button>
     </div>
 
     <div class="form-group">
       <label>หมายเลขโทรศัพท์ (10 หลัก) *</label>
       <input type="tel" id="phone" pattern="[0-9]{10}" maxlength="10" required placeholder="08XXXXXXXX" disabled onblur="validateDuplicate('phone')">
+      <button type="button" class="edit-field-btn" onclick="unlockField('phone', this)" title="แก้ไขข้อมูล">✏️</button>
       <div id="err-phone" class="error-text"></div>
     </div>
 
@@ -139,7 +152,7 @@
       <label for="pdpa" style="display:inline; font-weight:normal;">ข้าพเจ้ายินยอมให้ใช้ข้อมูลเพื่อการตรวจสอบตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)</label>
     </div>
 
-    <button type="button" id="btnEdit" class="btn btn-edit" style="display:none;" onclick="enableEditing()">✏️ แก้ไขข้อมูล / จัดการอุปกรณ์</button>
+    <button type="button" id="btnEdit" class="btn btn-edit" style="display:none;" onclick="enableEditing()">✏️ แก้ไขข้อมูล / จัดการอุปกรณ์ทั้งหมด</button>
     <button type="submit" id="btnSubmit" class="btn" style="display:none;">บันทึกข้อมูลการเปลี่ยนแปลง</button>
     <div id="statusMsg" class="status-msg"></div>
   </form>
@@ -212,6 +225,18 @@
       script.src = `${url}&callback=${callbackName}`; script.onerror = () => { reject(new Error("เชื่อมต่อฐานข้อมูลล้มเหลว")); cleanup(); };
       document.body.appendChild(script);
     });
+  }
+
+  // ฟังก์ชันปลดล็อกเฉพาะฟิลด์ที่กดปุ่มดินสอ
+  function unlockField(fieldId, btnElem) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    field.disabled = false;
+    field.style.backgroundColor = '#fff';
+    field.style.border = '1px solid #ccc';
+    field.style.padding = '10px 35px 10px 10px';
+    btnElem.style.display = 'none'; // ซ่อนปุ่มดินสอชั่วคราว
+    document.getElementById('btnSubmit').style.display = 'block'; // แสดงปุ่มบันทึก
   }
 
   async function validateDuplicate(field) {
@@ -296,7 +321,6 @@
     searchMsg.style.color = "#003366";
 
     try {
-      // ตรวจสอบกับเซิร์ฟเวอร์ตั้งแต่หน้าแรกทันที
       const url = `${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${lineUserId}&mode=delegated&vipCard=${encodeURIComponent(targetVipCard)}`;
       const data = await fetchJSONP(url);
 
@@ -337,14 +361,6 @@
 
         currentStoredItems = [user.item1, user.item2, user.item3, user.item4, user.item5].filter(i => i && i !== '-');
         renderStoredItemsView(user.status);
-
-        if (user.status !== "อนุมัติแล้ว" && user.status !== "อนุมัติ") {
-          document.getElementById('btnEdit').style.display = 'block';
-          document.getElementById('btnSubmit').style.display = 'none';
-        } else {
-          document.getElementById('btnEdit').style.display = 'none';
-          document.getElementById('btnSubmit').style.display = 'none';
-        }
       } else {
         setupNewRegistration();
       }
@@ -390,14 +406,6 @@
 
         currentStoredItems = [user.item1, user.item2, user.item3, user.item4, user.item5].filter(i => i && i !== '-');
         renderStoredItemsView(user.status);
-
-        if (user.status !== "อนุมัติแล้ว" && user.status !== "อนุมัติ") {
-          document.getElementById('btnEdit').style.display = 'block';
-          document.getElementById('btnSubmit').style.display = 'none';
-        } else {
-          document.getElementById('btnEdit').style.display = 'none';
-          document.getElementById('btnSubmit').style.display = 'none';
-        }
       } else {
         setupNewRegistration();
       }
@@ -442,8 +450,18 @@
       container.appendChild(div);
     });
     
-    const inputs = document.querySelectorAll('#regForm input:not(#cardNumber), #regForm select');
-    inputs.forEach(input => input.disabled = true);
+    // ตั้งค่าฟิลด์ทั้งหมดให้อ่านอย่างเดียว (Disabled) และซ่อนปุ่มแก้ไขรวม/แสดงปุ่มดินสอรายฟิลด์แทน
+    const inputs = document.querySelectorAll('#regForm input, #regForm select');
+    inputs.forEach(input => {
+      input.disabled = true;
+      input.style.backgroundColor = 'transparent';
+      input.style.border = 'none';
+      input.style.paddingLeft = '0';
+    });
+
+    document.querySelectorAll('.edit-field-btn').forEach(btn => btn.style.display = 'inline-block');
+    document.getElementById('btnEdit').style.display = 'none';
+    document.getElementById('btnSubmit').style.display = 'none';
   }
 
   async function removeStoredItemIndex(index) {
@@ -458,7 +476,11 @@
     inputs.forEach(input => {
       if (input.id === 'cardNumber' && currentMode === 'delegated') return;
       input.disabled = false;
+      input.style.backgroundColor = '#fff';
+      input.style.border = '1px solid #ccc';
+      input.style.padding = '10px 35px 10px 10px';
     });
+    document.querySelectorAll('.edit-field-btn').forEach(btn => btn.style.display = 'none');
     document.getElementById('btnEdit').style.display = 'none';
     document.getElementById('btnSubmit').style.display = 'block';
     
