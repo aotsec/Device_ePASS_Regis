@@ -45,7 +45,7 @@
     .error-text { font-size: 12px; margin-top: 6px; display: none; font-weight: bold; }
     
     .qr-container { text-align: center; margin-top: 10px; margin-bottom: 15px; display: none; }
-    .qr-container img { width: 130px; height: 130px; border: 1px solid #ddd; padding: 5px; border-radius: 8px; background: white; }
+    .qr-container img { width: 150px; height: 150px; border: 1px solid #ddd; padding: 8px; border-radius: 8px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 
     /* Custom Modal Popup CSS */
     #customModal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
@@ -104,15 +104,15 @@
     
     <div class="form-group">
       <label>หมายเลขบัตรอนุญาตบุคคล *</label>
-      <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" disabled oninput="this.value = this.value.toUpperCase(); updateCardQR(this.value);" onblur="validateDuplicate('cardNumber')">
+      <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" disabled oninput="this.value = this.value.toUpperCase()" onblur="validateDuplicate('cardNumber')">
       <button type="button" class="edit-field-btn" onclick="unlockField('cardNumber', this)" title="แก้ไขข้อมูล">✏️</button>
       <div id="err-cardNumber" class="error-text"></div>
     </div>
 
-    <!-- ส่วนแสดง QR Code หมายเลขบัตร -->
+    <!-- ส่วนแสดง QR Code หมายเลขบัตร (แสดงเฉพาะเมื่อสถานะเป็น "อนุมัติ" แล้วเท่านั้น) -->
     <div id="cardQrContainer" class="qr-container">
       <img id="cardQrImg" src="" alt="QR Code หมายเลขบัตร">
-      <div class="hint-text">QR Code ประจำหมายเลขบัตรอนุญาต</div>
+      <div class="hint-text" style="margin-top: 5px; font-weight: bold; color: #155724;">QR Code ประจำหมายเลขบัตร (สถานะอนุมัติ)</div>
     </div>
 
     <div class="form-group">
@@ -221,19 +221,22 @@
     const patterns = [
       /^\d{6}\/\d{5}\/\d{2}$/,
       /^(SUV|DMK|CEI|CNX|HKT|HDY)\/\d{5}\/\d{5}\/\d{2}$/,
-      /^(SUV|DMK|CEI|CNX|HKT|HDY)\d{6}\/\d{5}[DM]$/, // รองรับเฉพาะ D หรือ M สำหรับบัตรชั่วคราว
+      /^(SUV|DMK|CEI|CNX|HKT|HDY)\d{6}\/\d{5}[DM]$/,
       /^(SUV|DMK|CEI|CNX|HKT|HDY)\/\d{8}\/\d{5}\/\d{2}$/
     ];
     return patterns.some(p => p.test(cardId));
   }
 
-  function updateCardQR(cardVal) {
+  function checkAndRenderCardQR(cardVal, status) {
     const qrContainer = document.getElementById('cardQrContainer');
     const qrImg = document.getElementById('cardQrImg');
-    const cleanVal = cardVal.trim();
+    const cleanVal = (cardVal || '').trim();
     
-    if (isValidCardIdFormat(cleanVal)) {
-      qrImg.src = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(cleanVal)}&choe=UTF-8`;
+    // แสดง QR เฉพาะเมื่อสถานะเป็น "อนุมัติ" (หรือ "อนุมัติแล้ว") และเลขบัตรถูกต้อง
+    const normalizedStatus = (status === 'อนุมัติแล้ว') ? 'อนุมัติ' : status;
+    if (normalizedStatus === 'อนุมัติ' && isValidCardIdFormat(cleanVal)) {
+      // ใช้ API สร้าง QR ที่เสถียรและแสดงภาพได้ทันที 100%
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(cleanVal)}`;
       qrContainer.style.display = 'block';
     } else {
       qrContainer.style.display = 'none';
@@ -281,6 +284,12 @@
     field.style.border = '1px solid #ccc';
     field.style.padding = '10px 35px 10px 10px';
     btnElem.style.display = 'none';
+    
+    // หากปลดล็อกแก้ไขหมายเลขบัตร ให้ซ่อน QR ทันทีเพราะกำลังอยู่ในสถานะแก้ไข/รอพิจารณาใหม่
+    if (fieldId === 'cardNumber') {
+      document.getElementById('cardQrContainer').style.display = 'none';
+    }
+
     document.getElementById('btnSubmit').style.display = 'block';
   }
 
@@ -384,7 +393,6 @@
         originalUserData = { ...user };
         
         document.getElementById('cardNumber').value = user.cardNumber || '';
-        updateCardQR(user.cardNumber || '');
         setValueWithOther(document.getElementById('title'), user.title);
         document.getElementById('firstName').value = user.firstName || '';
         document.getElementById('lastName').value = user.lastName || '';
@@ -399,6 +407,9 @@
         linkBox.innerHTML = existingCardImgUrl !== '-' ? `📎 รูปหน้าบัตรที่แนบไว้: <a href="${existingCardImgUrl}" target="_blank" style="color:#0056b3; font-weight:bold;">คลิกเพื่อดูรูปภาพ</a>` : `<span style="color:#888;">- ยังไม่มีรูปภาพ -</span>`;
 
         renderStatusBadge(user.status);
+        
+        // ตรวจสอบและแสดง QR Code เฉพาะเมื่อสถานะเป็น "อนุมัติ"
+        checkAndRenderCardQR(user.cardNumber, user.status);
         
         const ePassContainer = document.getElementById('ePassContainer');
         if (user.status === 'อนุมัติ' && user.ePassUrl && user.ePassUrl !== '-') {
@@ -431,7 +442,6 @@
         originalUserData = { ...user };
         
         document.getElementById('cardNumber').value = user.cardNumber || '';
-        updateCardQR(user.cardNumber || '');
         setValueWithOther(document.getElementById('title'), user.title);
         document.getElementById('firstName').value = user.firstName || '';
         document.getElementById('lastName').value = user.lastName || '';
@@ -446,6 +456,9 @@
         linkBox.innerHTML = existingCardImgUrl !== '-' ? `📎 รูปหน้าบัตรที่แนบไว้: <a href="${existingCardImgUrl}" target="_blank" style="color:#0056b3; font-weight:bold;">คลิกเพื่อดูรูปภาพ</a>` : `<span style="color:#888;">- ยังไม่มีรูปภาพ -</span>`;
 
         renderStatusBadge(user.status);
+        
+        // ตรวจสอบและแสดง QR Code เฉพาะเมื่อสถานะเป็น "อนุมัติ"
+        checkAndRenderCardQR(user.cardNumber, user.status);
         
         const ePassContainer = document.getElementById('ePassContainer');
         if (user.status === 'อนุมัติ' && user.ePassUrl && user.ePassUrl !== '-') {
@@ -478,7 +491,6 @@
     
     if (currentMode === 'delegated' && targetVipCard) {
       document.getElementById('cardNumber').value = targetVipCard;
-      updateCardQR(targetVipCard);
       document.getElementById('cardNumber').disabled = true; 
     }
   }
@@ -536,6 +548,9 @@
     document.getElementById('btnEdit').style.display = 'none';
     document.getElementById('btnSubmit').style.display = 'block';
     
+    // ซ่อน QR Code ทันทีเมื่อกดแก้ไข (เพราะสถานะกำลังจะเปลี่ยนเป็นรอดำเนินการใหม่)
+    document.getElementById('cardQrContainer').style.display = 'none';
+
     const container = document.getElementById('itemsContainer');
     container.innerHTML = '';
     currentStoredItems.forEach((itemStr, index) => {
