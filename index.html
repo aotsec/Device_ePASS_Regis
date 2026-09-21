@@ -43,6 +43,19 @@
     .hint-text { font-size: 11px; color: #666; margin-top: 3px; }
     .mode-badge { background: #17a2b8; color: white; font-size: 12px; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 15px; font-weight: normal; }
     .error-text { font-size: 12px; margin-top: 6px; display: none; font-weight: bold; }
+    
+    .qr-container { text-align: center; margin-top: 10px; margin-bottom: 15px; display: none; }
+    .qr-container img { width: 130px; height: 130px; border: 1px solid #ddd; padding: 5px; border-radius: 8px; background: white; }
+
+    /* Custom Modal Popup CSS */
+    #customModal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+    .modal-content { background-color: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center; }
+    .modal-input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; margin: 15px 0; text-transform: uppercase; text-align: center; font-weight: bold; }
+    .modal-btns { display: flex; gap: 10px; }
+    .modal-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
+    .modal-btn-confirm { background-color: #28a745; color: white; }
+    .modal-btn-cancel { background-color: #dc3545; color: white; }
+    .modal-btn:disabled { background-color: #ccc; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -91,9 +104,15 @@
     
     <div class="form-group">
       <label>หมายเลขบัตรอนุญาตบุคคล *</label>
-      <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" disabled oninput="this.value = this.value.toUpperCase()" onblur="validateDuplicate('cardNumber')">
+      <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" disabled oninput="this.value = this.value.toUpperCase(); updateCardQR(this.value);" onblur="validateDuplicate('cardNumber')">
       <button type="button" class="edit-field-btn" onclick="unlockField('cardNumber', this)" title="แก้ไขข้อมูล">✏️</button>
       <div id="err-cardNumber" class="error-text"></div>
+    </div>
+
+    <!-- ส่วนแสดง QR Code หมายเลขบัตร -->
+    <div id="cardQrContainer" class="qr-container">
+      <img id="cardQrImg" src="" alt="QR Code หมายเลขบัตร">
+      <div class="hint-text">QR Code ประจำหมายเลขบัตรอนุญาต</div>
     </div>
 
     <div class="form-group">
@@ -157,6 +176,20 @@
   </form>
 </div>
 
+<!-- Custom Modal Popup สำหรับยืนยันเลขบัตร -->
+<div id="customModal">
+  <div class="modal-content">
+    <h3 style="color: #003366; margin-top: 0;">🔒 ยืนยันหมายเลขบัตร</h3>
+    <p style="font-size: 13px; color: #555; line-height: 1.4;">กรุณาดูหน้าบัตรจริงของท่าน แล้วพิมพ์หมายเลขบัตรใหม่อีกครั้งเพื่อยืนยัน (ห้ามคัดลอกและวาง)</p>
+    <input type="text" id="modalCardInput" class="modal-input" placeholder="พิมพ์เลขบัตรจากหน้าบัตร" oninput="this.value = this.value.toUpperCase(); checkModalMatch();" onpaste="return false;" oncopy="return false;" oncut="return false;">
+    <div id="modalError" style="font-size: 12px; color: #dc3545; font-weight: bold; margin-bottom: 15px; min-height: 18px;"></div>
+    <div class="modal-btns">
+      <button type="button" id="modalConfirmBtn" class="modal-btn modal-btn-confirm" onclick="confirmModalSubmit()" disabled>ยืนยันบันทึก</button>
+      <button type="button" class="modal-btn modal-btn-cancel" onclick="closeCustomModal()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
 <script>
   let lineUserId = '';
   let configData = {};
@@ -188,10 +221,23 @@
     const patterns = [
       /^\d{6}\/\d{5}\/\d{2}$/,
       /^(SUV|DMK|CEI|CNX|HKT|HDY)\/\d{5}\/\d{5}\/\d{2}$/,
-      /^(SUV|DMK|CEI|CNX|HKT|HDY)\d{6}\/\d{5}[A-Z]$/,
+      /^(SUV|DMK|CEI|CNX|HKT|HDY)\d{6}\/\d{5}[DM]$/, // รองรับเฉพาะ D หรือ M สำหรับบัตรชั่วคราว
       /^(SUV|DMK|CEI|CNX|HKT|HDY)\/\d{8}\/\d{5}\/\d{2}$/
     ];
     return patterns.some(p => p.test(cardId));
+  }
+
+  function updateCardQR(cardVal) {
+    const qrContainer = document.getElementById('cardQrContainer');
+    const qrImg = document.getElementById('cardQrImg');
+    const cleanVal = cardVal.trim();
+    
+    if (isValidCardIdFormat(cleanVal)) {
+      qrImg.src = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(cleanVal)}&choe=UTF-8`;
+      qrContainer.style.display = 'block';
+    } else {
+      qrContainer.style.display = 'none';
+    }
   }
 
   window.onload = async function() {
@@ -338,6 +384,7 @@
         originalUserData = { ...user };
         
         document.getElementById('cardNumber').value = user.cardNumber || '';
+        updateCardQR(user.cardNumber || '');
         setValueWithOther(document.getElementById('title'), user.title);
         document.getElementById('firstName').value = user.firstName || '';
         document.getElementById('lastName').value = user.lastName || '';
@@ -384,6 +431,7 @@
         originalUserData = { ...user };
         
         document.getElementById('cardNumber').value = user.cardNumber || '';
+        updateCardQR(user.cardNumber || '');
         setValueWithOther(document.getElementById('title'), user.title);
         document.getElementById('firstName').value = user.firstName || '';
         document.getElementById('lastName').value = user.lastName || '';
@@ -421,6 +469,7 @@
     document.getElementById('statusBadgeContainer').innerHTML = '';
     document.getElementById('ePassContainer').style.display = 'none';
     document.getElementById('cardImgLinkBox').innerHTML = '';
+    document.getElementById('cardQrContainer').style.display = 'none';
     existingCardImgUrl = '-';
     clearAllErrors();
     
@@ -429,6 +478,7 @@
     
     if (currentMode === 'delegated' && targetVipCard) {
       document.getElementById('cardNumber').value = targetVipCard;
+      updateCardQR(targetVipCard);
       document.getElementById('cardNumber').disabled = true; 
     }
   }
@@ -470,7 +520,7 @@
     if (currentStoredItems.length <= 1) return alert("ระบบต้องมีอุปกรณ์อย่างน้อย 1 รายการค่ะ");
     if (!confirm("ต้องการลบรายการนี้และบันทึกการเปลี่ยนแปลงใช่หรือไม่?")) return;
     currentStoredItems.splice(index, 1);
-    submitFormData(true);
+    submitFormDataFinal(true);
   }
 
   function enableEditing() {
@@ -590,37 +640,59 @@
 
   document.getElementById('regForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    submitFormData(false);
+    if (invalidFields.size > 0) {
+      alert("กรุณาแก้ไขข้อมูลที่ 'ซ้ำซ้อนในระบบ' ให้ถูกต้องก่อนบันทึกค่ะ");
+      return;
+    }
+    const cardNumberVal = document.getElementById('cardNumber').value.trim().toUpperCase();
+    if (!isValidCardIdFormat(cardNumberVal)) {
+      alert("รูปแบบ 'หมายเลขบัตรอนุญาต' ไม่ถูกต้อง (เช่น บัตรชั่วคราวต้องลงท้ายด้วย D หรือ M)");
+      return;
+    }
+    document.getElementById('modalCardInput').value = '';
+    document.getElementById('modalError').innerText = '';
+    document.getElementById('modalConfirmBtn').disabled = true;
+    document.getElementById('customModal').style.display = 'flex';
   });
 
-  async function submitFormData(isSilently = false) {
+  function closeCustomModal() {
+    document.getElementById('customModal').style.display = 'none';
+  }
+
+  function checkModalMatch() {
+    const originalCard = document.getElementById('cardNumber').value.trim().toUpperCase();
+    const modalInput = document.getElementById('modalCardInput').value.trim().toUpperCase();
+    const errDiv = document.getElementById('modalError');
+    const confirmBtn = document.getElementById('modalConfirmBtn');
+
+    if (!modalInput) {
+      errDiv.innerText = '';
+      confirmBtn.disabled = true;
+      return;
+    }
+
+    if (modalInput !== originalCard) {
+      errDiv.innerText = '❌ หมายเลขบัตรไม่ตรงกับครั้งแรก กรุณาดูจากหน้าบัตรจริง';
+      confirmBtn.disabled = true;
+    } else {
+      errDiv.innerText = '✅ หมายเลขบัตรถูกต้องตรงกัน';
+      errDiv.style.color = '#28a745';
+      confirmBtn.disabled = false;
+    }
+  }
+
+  async function confirmModalSubmit() {
+    closeCustomModal();
+    await submitFormDataFinal(false);
+  }
+
+  async function submitFormDataFinal(isSilently = false) {
     const submitBtn = document.getElementById('btnSubmit');
     submitBtn.disabled = true;
 
     try {
-      if (invalidFields.size > 0) throw new Error("กรุณาแก้ไขข้อมูลที่ 'ซ้ำซ้อนในระบบ' ให้ถูกต้องก่อนบันทึกค่ะ");
-
-      let cardNumberVal = document.getElementById('cardNumber').value.trim().toUpperCase();
-      if (!isValidCardIdFormat(cardNumberVal)) throw new Error("รูปแบบ 'หมายเลขบัตรอนุญาต' ไม่ถูกต้อง");
+      const cardNumberVal = document.getElementById('cardNumber').value.trim().toUpperCase();
       
-      // --- ระบบ Popup ยืนยันหมายเลขบัตรก่อนบันทึกจริง ---
-      if (!isSilently) {
-        let confirmCard = prompt("🔒 เพื่อความถูกต้อง กรุณาดูหน้าบัตรจริงของท่าน แล้วพิมพ์ 'หมายเลขบัตรอนุญาตบุคคล' อีกครั้งเพื่อยืนยัน:");
-        if (confirmCard === null) {
-          // กรณีกดยกเลิก
-          alert("❌ ยกเลิกการบันทึก กรุณาตรวจสอบและดูหมายเลขจากบัตรจริงให้ถูกต้องอีกครั้งค่ะ");
-          submitBtn.disabled = false;
-          return;
-        }
-        confirmCard = confirmCard.trim().toUpperCase();
-        if (confirmCard !== cardNumberVal) {
-          // กรณีพิมพ์ไม่ตรงกัน ล้างค่าช่องแรกทิ้งและเตือน
-          document.getElementById('cardNumber').value = '';
-          throw new Error("❌ หมายเลขบัตรยืนยันไม่ตรงกัน! ระบบได้ล้างค่าช่องหมายเลขบัตรออกแล้ว กรุณาหยิบบัตรจริงขึ้นมาดูและทำการตรวจสอบความถูกต้องใหม่อีกครั้งค่ะ");
-        }
-      }
-      // ----------------------------------------------
-
       const firstNameVal = document.getElementById('firstName').value.trim();
       if (['นาย', 'นาง', 'นางสาว', 'น.ส.', 'ด.ช.', 'ด.ญ.', 'ว่าที่ร้อย'].some(t => firstNameVal.startsWith(t)) || firstNameVal.includes(' ')) {
         throw new Error("ช่อง 'ชื่อ' ห้ามใส่คำนำหน้า และห้ามเว้นวรรคค่ะ");
@@ -651,7 +723,7 @@
         }
 
         const colorVal = getActualValue(block.querySelector('.newItem-color'));
-        newlyAddedItems.push(`[ประเภท: ${typeType || typeVal}] [ยี่ห้อ: ${brandVal}] [รุ่น: ${modelVal}] [S/N: ${serialVal}] [สี: ${colorVal}]`);
+        newlyAddedItems.push(`[ประเภท: ${typeVal}] [ยี่ห้อ: ${brandVal}] [รุ่น: ${modelVal}] [S/N: ${serialVal}] [สี: ${colorVal}]`);
       }
 
       const finalItemsList = [...currentStoredItems, ...newlyAddedItems];
@@ -691,7 +763,7 @@
       }
 
       if (!isSilently) setStatus("กำลังประมวลผลไฟล์รูปภาพ...");
-      const cardImgFile = document.getElementById('cardImg').files[0];
+      const cardImgFile = document.getElementById('cardImg').files.length > 0 ? document.getElementById('cardImg').files[0] : null;
       let cardImgBase64 = cardImgFile ? await fileToBase64(cardImgFile) : null;
 
       const payload = {
