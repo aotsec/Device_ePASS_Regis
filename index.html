@@ -38,6 +38,9 @@
     .file-link-box { font-size: 13px; margin-top: 5px; }
     .hint-text { font-size: 11px; color: #666; margin-top: 3px; }
     .mode-badge { background: #17a2b8; color: white; font-size: 12px; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 15px; font-weight: normal; }
+    
+    /* สไตล์สำหรับแจ้งเตือนข้อมูลซ้ำ */
+    .error-text { font-size: 12px; margin-top: 6px; display: none; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -51,9 +54,7 @@
   <h2>ระบบทะเบียนอุปกรณ์อิเล็กทรอนิกส์ ทสภ.</h2>
   <p class="desc-text">ยินดีต้อนรับสู่ระบบลงทะเบียน กรุณาเลือกรูปแบบการลงทะเบียนที่ท่านต้องการดำเนินการ</p>
   
-  <button class="menu-btn" onclick="startSelfRegistration()">
-    👤 ลงทะเบียนอุปกรณ์ของตนเอง
-  </button>
+  <button class="menu-btn" onclick="startSelfRegistration()">👤 ลงทะเบียนอุปกรณ์ของตนเอง</button>
   <button class="menu-btn menu-btn-secondary" onclick="showVipSearch()">
     👥 ลงทะเบียนแทนบุคคลอื่น<br><span style="font-size: 12px; font-weight: normal;">(สำหรับผู้บังคับบัญชา / ผู้ไม่สะดวกใช้ LINE)</span>
   </button>
@@ -62,12 +63,10 @@
 <div id="vipSearchScreen" class="card" style="display: none;">
   <h2>ลงทะเบียนแทนบุคคลอื่น</h2>
   <p class="desc-text">ระบบจะบันทึก LINE ID ของท่านในฐานะ "ผู้ดำเนินการแทน" เพื่อความปลอดภัยและตรวจสอบย้อนหลัง</p>
-  
   <div class="form-group">
     <label>หมายเลขบัตรอนุญาตบุคคลของผู้บังคับบัญชา *</label>
     <input type="text" id="searchVipCard" placeholder="เช่น SUV/17330/00807/68" oninput="this.value = this.value.toUpperCase()">
   </div>
-  
   <button class="btn" style="background-color: #17a2b8; margin-bottom: 10px;" onclick="searchVipRegistration()">🔍 ตรวจสอบ / สร้างข้อมูลใหม่</button>
   <button class="btn btn-back" onclick="showScreen('menuScreen')">⬅️ ย้อนกลับไปเมนูหลัก</button>
   <div id="searchMsg" class="status-msg"></div>
@@ -78,7 +77,6 @@
   
   <h2 style="margin-bottom: 5px;">แบบฟอร์มข้อมูลอุปกรณ์</h2>
   <div id="modeBadgeContainer" style="text-align: center;"></div>
-  
   <div id="statusBadgeContainer"></div>
   <div id="ePassContainer" style="display: none; margin-bottom: 20px; text-align: center;"></div>
 
@@ -91,7 +89,9 @@
     
     <div class="form-group">
       <label>หมายเลขบัตรอนุญาตบุคคล *</label>
-      <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" disabled oninput="this.value = this.value.toUpperCase()">
+      <!-- เพิ่ม onblur สำหรับเช็กข้อมูลซ้ำ -->
+      <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" disabled oninput="this.value = this.value.toUpperCase()" onblur="validateDuplicate('cardNumber')">
+      <div id="err-cardNumber" class="error-text"></div>
     </div>
 
     <div class="form-group">
@@ -101,17 +101,19 @@
 
     <div class="form-group">
       <label>ชื่อ * (ไม่มีคำนำหน้านาม และห้ามเว้นวรรค)</label>
-      <input type="text" id="firstName" required placeholder="กรอกเฉพาะชื่อจริง" disabled>
+      <input type="text" id="firstName" required placeholder="กรอกเฉพาะชื่อจริง" disabled onblur="validateDuplicate('fullName')">
     </div>
 
     <div class="form-group">
       <label>นามสกุล *</label>
-      <input type="text" id="lastName" required placeholder="กรอกเฉพาะนามสกุล" disabled>
+      <input type="text" id="lastName" required placeholder="กรอกเฉพาะนามสกุล" disabled onblur="validateDuplicate('fullName')">
+      <div id="err-fullName" class="error-text"></div>
     </div>
 
     <div class="form-group">
       <label>อีเมล (E-Mail) *</label>
-      <input type="email" id="email" required placeholder="example@email.com" disabled>
+      <input type="email" id="email" required placeholder="example@email.com" disabled onblur="validateDuplicate('email')">
+      <div id="err-email" class="error-text"></div>
     </div>
 
     <div class="form-group">
@@ -126,7 +128,8 @@
 
     <div class="form-group">
       <label>หมายเลขโทรศัพท์ (10 หลัก) *</label>
-      <input type="tel" id="phone" pattern="[0-9]{10}" maxlength="10" required placeholder="08XXXXXXXX" disabled>
+      <input type="tel" id="phone" pattern="[0-9]{10}" maxlength="10" required placeholder="08XXXXXXXX" disabled onblur="validateDuplicate('phone')">
+      <div id="err-phone" class="error-text"></div>
     </div>
 
     <hr style="margin: 20px 0;">
@@ -153,11 +156,11 @@
   let currentStoredItems = []; 
   let currentMode = 'self'; 
   let targetVipCard = '';
+  const invalidFields = new Set(); // เก็บรายการฟิลด์ที่มีข้อมูลซ้ำซ้อน
   
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec";
   const FETCH_TIMEOUT_MS = 45000;
 
-  // ฟังก์ชันนี้แหละค่ะที่หายไปรอบที่แล้ว มินตราเอาคืนมาให้แล้วค่าา!
   function setStatus(msg) { 
     const el = document.getElementById('statusMsg');
     if(el) el.innerText = msg || ''; 
@@ -214,6 +217,67 @@
     });
   }
 
+  // --- ฟังก์ชันเช็กข้อมูลซ้ำแบบ Real-time (onblur) ---
+  async function validateDuplicate(field) {
+    let element;
+    let value = '';
+
+    if (field === 'cardNumber') {
+      element = document.getElementById('cardNumber');
+      value = element.value.trim();
+    } else if (field === 'fullName') {
+      const fn = document.getElementById('firstName').value.trim();
+      const ln = document.getElementById('lastName').value.trim();
+      if (fn && ln) value = fn + ln;
+      element = document.getElementById('lastName'); 
+    } else if (field === 'email') {
+      element = document.getElementById('email');
+      value = element.value.trim();
+    } else if (field === 'phone') {
+      element = document.getElementById('phone');
+      value = element.value.trim();
+    }
+
+    if (!element || element.disabled) return;
+    if (!value) {
+      clearError(field);
+      return;
+    }
+
+    const errDiv = document.getElementById('err-' + field);
+    errDiv.innerText = '⏳ กำลังตรวจสอบข้อมูล...';
+    errDiv.style.color = '#888';
+    errDiv.style.display = 'block';
+
+    try {
+      const url = `${GAS_WEB_APP_URL}?action=checkDuplicate&field=${field}&value=${encodeURIComponent(value)}&lineUserId=${lineUserId}&mode=${currentMode}&vipCard=${encodeURIComponent(targetVipCard)}`;
+      const res = await fetchJSONP(url);
+      
+      if (res.isDuplicate) {
+        errDiv.innerText = '❌ ข้อมูลนี้มีอยู่ในฐานข้อมูลแล้ว';
+        errDiv.style.color = '#dc3545'; // สีแดง
+        invalidFields.add(field);
+      } else {
+        errDiv.innerText = '✅ ใช้งานได้';
+        errDiv.style.color = '#28a745'; // สีเขียว
+        invalidFields.delete(field);
+        setTimeout(() => { errDiv.style.display = 'none'; }, 2000); 
+      }
+    } catch (err) {
+      errDiv.style.display = 'none';
+    }
+  }
+
+  function clearError(field) {
+    const errDiv = document.getElementById('err-' + field);
+    if(errDiv) errDiv.style.display = 'none';
+    invalidFields.delete(field);
+  }
+  function clearAllErrors() {
+    ['cardNumber', 'fullName', 'email', 'phone'].forEach(clearError);
+  }
+  // ------------------------------------------------
+
   async function startSelfRegistration() {
     currentMode = 'self';
     targetVipCard = '';
@@ -241,6 +305,7 @@
   }
 
   async function fetchUserData() {
+    clearAllErrors();
     try {
       const url = `${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${lineUserId}&mode=${currentMode}&vipCard=${encodeURIComponent(targetVipCard)}`;
       const data = await fetchJSONP(url);
@@ -305,6 +370,7 @@
     document.getElementById('ePassContainer').style.display = 'none';
     document.getElementById('cardImgLinkBox').innerHTML = '';
     existingCardImgUrl = '-';
+    clearAllErrors();
     
     enableEditing();
     addNewItemBlock();
@@ -465,6 +531,11 @@
     submitBtn.disabled = true;
 
     try {
+      // ดักไว้ก่อนเลย ถ้ามี Error ค้างอยู่ไม่ให้ไปต่อ
+      if (invalidFields.size > 0) {
+        throw new Error("กรุณาแก้ไขข้อมูลที่ 'ซ้ำซ้อนในระบบ' หรือพิมพ์ผิดให้ถูกต้องก่อนบันทึกค่ะ");
+      }
+
       const cardNumberVal = document.getElementById('cardNumber').value.trim().toUpperCase();
       if (!isValidCardIdFormat(cardNumberVal)) throw new Error("รูปแบบ 'หมายเลขบัตรอนุญาต' ไม่ถูกต้อง");
       
