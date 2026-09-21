@@ -89,19 +89,11 @@
       <div id="cardImgLinkBox" class="file-link-box"></div>
     </div>
     
-    <!-- ช่องกรอกหมายเลขบัตรครั้งที่ 1 (ห้าม Copy & Paste) -->
     <div class="form-group">
-      <label>หมายเลขบัตรอนุญาตบุคคล (กรอกครั้งที่ 1 จากหน้าบัตร) *</label>
-      <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" disabled oninput="this.value = this.value.toUpperCase(); checkCardMatch();" onblur="validateDuplicate('cardNumber')" onpaste="return false;" oncopy="return false;" oncut="return false;">
+      <label>หมายเลขบัตรอนุญาตบุคคล *</label>
+      <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" disabled oninput="this.value = this.value.toUpperCase()" onblur="validateDuplicate('cardNumber')">
       <button type="button" class="edit-field-btn" onclick="unlockField('cardNumber', this)" title="แก้ไขข้อมูล">✏️</button>
       <div id="err-cardNumber" class="error-text"></div>
-    </div>
-
-    <!-- ช่องยืนยันหมายเลขบัตรครั้งที่ 2 (ห้าม Copy & Paste) -->
-    <div class="form-group" id="confirmCardGroup" style="display: none;">
-      <label style="color: #b91c1c;">ยืนยันหมายเลขบัตรอนุญาตบุคคล (พิมพ์ซ้ำอีกครั้งจากหน้าบัตร) *</label>
-      <input type="text" id="confirmCardNumber" placeholder="พิมพ์ซ้ำหมายเลขบัตรอีกครั้ง" oninput="this.value = this.value.toUpperCase(); checkCardMatch();" onpaste="return false;" oncopy="return false;" oncut="return false;">
-      <div id="err-confirmCard" class="error-text"></div>
     </div>
 
     <div class="form-group">
@@ -243,41 +235,7 @@
     field.style.border = '1px solid #ccc';
     field.style.padding = '10px 35px 10px 10px';
     btnElem.style.display = 'none';
-    
-    // หากกดแก้ไขหมายเลขบัตร ให้ล้างค่าเก่าออกและเปิดช่องยืนยันเพื่อให้พิมพ์ใหม่ทั้ง 2 รอบ
-    if(fieldId === 'cardNumber') {
-      field.value = '';
-      document.getElementById('confirmCardGroup').style.display = 'block';
-      document.getElementById('confirmCardNumber').value = '';
-      invalidFields.add('confirmCard');
-    }
-
     document.getElementById('btnSubmit').style.display = 'block';
-  }
-
-  function checkCardMatch() {
-    const val1 = document.getElementById('cardNumber').value.trim().toUpperCase();
-    const val2 = document.getElementById('confirmCardNumber').value.trim().toUpperCase();
-    const errDiv = document.getElementById('err-confirmCard');
-
-    if (!val1 || !val2) {
-      errDiv.style.display = 'none';
-      invalidFields.add('confirmCard');
-      return;
-    }
-
-    if (val1 !== val2) {
-      errDiv.innerText = '❌ หมายเลขบัตรทั้งสองช่องไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง';
-      errDiv.style.color = '#dc3545';
-      errDiv.style.display = 'block';
-      invalidFields.add('confirmCard');
-    } else {
-      errDiv.innerText = '✅ หมายเลขบัตรถูกต้องตรงกัน';
-      errDiv.style.color = '#28a745';
-      errDiv.style.display = 'block';
-      invalidFields.delete('confirmCard');
-      setTimeout(() => { errDiv.style.display = 'none'; }, 2000);
-    }
   }
 
   async function validateDuplicate(field) {
@@ -331,7 +289,7 @@
     invalidFields.delete(field);
   }
   function clearAllErrors() {
-    ['cardNumber', 'fullName', 'email', 'phone', 'confirmCard'].forEach(clearError);
+    ['cardNumber', 'fullName', 'email', 'phone'].forEach(clearError);
   }
 
   async function startSelfRegistration() {
@@ -466,19 +424,12 @@
     existingCardImgUrl = '-';
     clearAllErrors();
     
-    // สมัครใหม่: ล้างค่าและบังคับพิมพ์ใหม่ทั้ง 2 ช่อง
-    document.getElementById('cardNumber').value = '';
-    document.getElementById('confirmCardGroup').style.display = 'block';
-    document.getElementById('confirmCardNumber').value = '';
-    invalidFields.add('confirmCard');
-
     enableEditing();
     addNewItemBlock();
     
     if (currentMode === 'delegated' && targetVipCard) {
       document.getElementById('cardNumber').value = targetVipCard;
       document.getElementById('cardNumber').disabled = true; 
-      // ถ้าทำแทนและล็อกเลขช่องแรกแล้ว ให้ซ่อนช่องยืนยันหรือเปิดตามต้องการ (ในที่นี้ให้พิมพ์ยืนยันคู่กันเพื่อความชัวร์)
     }
   }
 
@@ -509,7 +460,6 @@
       input.style.paddingLeft = '0';
     });
 
-    document.getElementById('confirmCardGroup').style.display = 'none';
     document.querySelectorAll('.edit-field-btn').forEach(btn => btn.style.display = 'inline-block');
     document.getElementById('btnAddItem').style.display = 'block';
     document.getElementById('btnEdit').style.display = 'none';
@@ -648,11 +598,29 @@
     submitBtn.disabled = true;
 
     try {
-      if (invalidFields.size > 0) throw new Error("กรุณาตรวจสอบข้อมูล: มีช่องข้อมูลที่ซ้ำซ้อน หรือหมายเลขบัตรยืนยันไม่ตรงกัน");
+      if (invalidFields.size > 0) throw new Error("กรุณาแก้ไขข้อมูลที่ 'ซ้ำซ้อนในระบบ' ให้ถูกต้องก่อนบันทึกค่ะ");
 
-      const cardNumberVal = document.getElementById('cardNumber').value.trim().toUpperCase();
+      let cardNumberVal = document.getElementById('cardNumber').value.trim().toUpperCase();
       if (!isValidCardIdFormat(cardNumberVal)) throw new Error("รูปแบบ 'หมายเลขบัตรอนุญาต' ไม่ถูกต้อง");
       
+      // --- ระบบ Popup ยืนยันหมายเลขบัตรก่อนบันทึกจริง ---
+      if (!isSilently) {
+        let confirmCard = prompt("🔒 เพื่อความถูกต้อง กรุณาดูหน้าบัตรจริงของท่าน แล้วพิมพ์ 'หมายเลขบัตรอนุญาตบุคคล' อีกครั้งเพื่อยืนยัน:");
+        if (confirmCard === null) {
+          // กรณีกดยกเลิก
+          alert("❌ ยกเลิกการบันทึก กรุณาตรวจสอบและดูหมายเลขจากบัตรจริงให้ถูกต้องอีกครั้งค่ะ");
+          submitBtn.disabled = false;
+          return;
+        }
+        confirmCard = confirmCard.trim().toUpperCase();
+        if (confirmCard !== cardNumberVal) {
+          // กรณีพิมพ์ไม่ตรงกัน ล้างค่าช่องแรกทิ้งและเตือน
+          document.getElementById('cardNumber').value = '';
+          throw new Error("❌ หมายเลขบัตรยืนยันไม่ตรงกัน! ระบบได้ล้างค่าช่องหมายเลขบัตรออกแล้ว กรุณาหยิบบัตรจริงขึ้นมาดูและทำการตรวจสอบความถูกต้องใหม่อีกครั้งค่ะ");
+        }
+      }
+      // ----------------------------------------------
+
       const firstNameVal = document.getElementById('firstName').value.trim();
       if (['นาย', 'นาง', 'นางสาว', 'น.ส.', 'ด.ช.', 'ด.ญ.', 'ว่าที่ร้อย'].some(t => firstNameVal.startsWith(t)) || firstNameVal.includes(' ')) {
         throw new Error("ช่อง 'ชื่อ' ห้ามใส่คำนำหน้า และห้ามเว้นวรรคค่ะ");
@@ -683,7 +651,7 @@
         }
 
         const colorVal = getActualValue(block.querySelector('.newItem-color'));
-        newlyAddedItems.push(`[ประเภท: ${typeVal}] [ยี่ห้อ: ${brandVal}] [รุ่น: ${modelVal}] [S/N: ${serialVal}] [สี: ${colorVal}]`);
+        newlyAddedItems.push(`[ประเภท: ${typeType || typeVal}] [ยี่ห้อ: ${brandVal}] [รุ่น: ${modelVal}] [S/N: ${serialVal}] [สี: ${colorVal}]`);
       }
 
       const finalItemsList = [...currentStoredItems, ...newlyAddedItems];
