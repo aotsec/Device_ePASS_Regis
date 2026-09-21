@@ -96,6 +96,13 @@
       <div id="err-cardNumber" class="error-text"></div>
     </div>
 
+    <!-- ช่องยืนยันหมายเลขบัตรครั้งที่ 2 (ห้าม Copy & Paste) -->
+    <div class="form-group" id="confirmCardGroup" style="display: none;">
+      <label style="color: #b91c1c;">ยืนยันหมายเลขบัตรอนุญาตบุคคล (พิมพ์ซ้ำอีกครั้งเพื่อความถูกต้อง) *</label>
+      <input type="text" id="confirmCardNumber" placeholder="พิมพ์ซ้ำหมายเลขบัตรอีกครั้ง" oninput="this.value = this.value.toUpperCase(); checkCardMatch();" onpaste="return false;" oncopy="return false;" oncut="return false;">
+      <div id="err-confirmCard" class="error-text"></div>
+    </div>
+
     <div class="form-group">
       <label>คำนำหน้าชื่อ *</label>
       <select id="title" required disabled onchange="handleDropdownChange(this)"><option value="">-- กำลังโหลดรายการ --</option></select>
@@ -235,7 +242,39 @@
     field.style.border = '1px solid #ccc';
     field.style.padding = '10px 35px 10px 10px';
     btnElem.style.display = 'none';
+    
+    // ถ้ายศหรือผู้ใช้ปลดล็อกหมายเลขบัตร ให้เปิดช่องยืนยันครั้งที่ 2 ด้วย
+    if(fieldId === 'cardNumber') {
+      document.getElementById('confirmCardGroup').style.display = 'block';
+      document.getElementById('confirmCardNumber').value = '';
+    }
+
     document.getElementById('btnSubmit').style.display = 'block';
+  }
+
+  function checkCardMatch() {
+    const val1 = document.getElementById('cardNumber').value.trim().toUpperCase();
+    const val2 = document.getElementById('confirmCardNumber').value.trim().toUpperCase();
+    const errDiv = document.getElementById('err-confirmCard');
+
+    if (!val2) {
+      errDiv.style.display = 'none';
+      invalidFields.add('confirmCard');
+      return;
+    }
+
+    if (val1 !== val2) {
+      errDiv.innerText = '❌ หมายเลขบัตรยืนยันไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง';
+      errDiv.style.color = '#dc3545';
+      errDiv.style.display = 'block';
+      invalidFields.add('confirmCard');
+    } else {
+      errDiv.innerText = '✅ หมายเลขบัตรถูกต้องตรงกัน';
+      errDiv.style.color = '#28a745';
+      errDiv.style.display = 'block';
+      invalidFields.delete('confirmCard');
+      setTimeout(() => { errDiv.style.display = 'none'; }, 2000);
+    }
   }
 
   async function validateDuplicate(field) {
@@ -289,7 +328,7 @@
     invalidFields.delete(field);
   }
   function clearAllErrors() {
-    ['cardNumber', 'fullName', 'email', 'phone'].forEach(clearError);
+    ['cardNumber', 'fullName', 'email', 'phone', 'confirmCard'].forEach(clearError);
   }
 
   async function startSelfRegistration() {
@@ -424,6 +463,11 @@
     existingCardImgUrl = '-';
     clearAllErrors();
     
+    // กรณีสมัครใหม่ ให้แสดงช่องยืนยันบัตรเสมอ และห้าม Copy & Paste
+    document.getElementById('confirmCardGroup').style.display = 'block';
+    document.getElementById('confirmCardNumber').value = '';
+    invalidFields.add('confirmCard'); // บังคับว่าต้องพิมพ์ยืนยันให้ผ่านก่อน
+
     enableEditing();
     addNewItemBlock();
     
@@ -459,6 +503,9 @@
       input.style.border = 'none';
       input.style.paddingLeft = '0';
     });
+
+    // ซ่อนช่องยืนยันบัตรเวลาแสดงผลปกติ
+    document.getElementById('confirmCardGroup').style.display = 'none';
 
     document.querySelectorAll('.edit-field-btn').forEach(btn => btn.style.display = 'inline-block');
     document.getElementById('btnAddItem').style.display = 'block';
@@ -598,7 +645,7 @@
     submitBtn.disabled = true;
 
     try {
-      if (invalidFields.size > 0) throw new Error("กรุณาแก้ไขข้อมูลที่ 'ซ้ำซ้อนในระบบ' ให้ถูกต้องก่อนบันทึกค่ะ");
+      if (invalidFields.size > 0) throw new Error("กรุณาตรวจสอบข้อมูล: มีช่องข้อมูลที่ซ้ำซ้อน หรือหมายเลขบัตรยืนยันไม่ตรงกัน");
 
       const cardNumberVal = document.getElementById('cardNumber').value.trim().toUpperCase();
       if (!isValidCardIdFormat(cardNumberVal)) throw new Error("รูปแบบ 'หมายเลขบัตรอนุญาต' ไม่ถูกต้อง");
@@ -679,7 +726,7 @@
       const payload = {
         lineUserId: lineUserId, mode: currentMode, cardNumber: cardNumberVal, 
         title: currentFormValues.title, firstName: currentFormValues.firstName, 
-        lastName: currentFormValue.lastName, email: currentFormValues.email,
+        lastName: currentFormValues.lastName, email: currentFormValues.email,
         company: currentFormValues.company, role: currentFormValues.role,
         phone: "'" + currentFormValues.phone, cardImgBase64: cardImgBase64, existingCardImgUrl: existingCardImgUrl, 
         itemsRaw: finalItemsList, pdpaAccepted: document.getElementById('pdpa').checked
