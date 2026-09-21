@@ -38,8 +38,6 @@
     .file-link-box { font-size: 13px; margin-top: 5px; }
     .hint-text { font-size: 11px; color: #666; margin-top: 3px; }
     .mode-badge { background: #17a2b8; color: white; font-size: 12px; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 15px; font-weight: normal; }
-    
-    /* สไตล์สำหรับแจ้งเตือนข้อมูลซ้ำ */
     .error-text { font-size: 12px; margin-top: 6px; display: none; font-weight: bold; }
   </style>
 </head>
@@ -69,7 +67,7 @@
   </div>
   <button class="btn" style="background-color: #17a2b8; margin-bottom: 10px;" onclick="searchVipRegistration()">🔍 ตรวจสอบ / สร้างข้อมูลใหม่</button>
   <button class="btn btn-back" onclick="showScreen('menuScreen')">⬅️ ย้อนกลับไปเมนูหลัก</button>
-  <div id="searchMsg" class="status-msg"></div>
+  <div id="searchMsg" class="status-msg" style="color: #dc3545;"></div>
 </div>
 
 <div id="mainFormScreen" class="card" style="display: none;">
@@ -89,7 +87,6 @@
     
     <div class="form-group">
       <label>หมายเลขบัตรอนุญาตบุคคล *</label>
-      <!-- เพิ่ม onblur สำหรับเช็กข้อมูลซ้ำ -->
       <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" disabled oninput="this.value = this.value.toUpperCase()" onblur="validateDuplicate('cardNumber')">
       <div id="err-cardNumber" class="error-text"></div>
     </div>
@@ -156,7 +153,7 @@
   let currentStoredItems = []; 
   let currentMode = 'self'; 
   let targetVipCard = '';
-  const invalidFields = new Set(); // เก็บรายการฟิลด์ที่มีข้อมูลซ้ำซ้อน
+  const invalidFields = new Set();
   
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec";
   const FETCH_TIMEOUT_MS = 45000;
@@ -217,7 +214,6 @@
     });
   }
 
-  // --- ฟังก์ชันเช็กข้อมูลซ้ำแบบ Real-time (onblur) ---
   async function validateDuplicate(field) {
     let element;
     let value = '';
@@ -239,10 +235,7 @@
     }
 
     if (!element || element.disabled) return;
-    if (!value) {
-      clearError(field);
-      return;
-    }
+    if (!value) { clearError(field); return; }
 
     const errDiv = document.getElementById('err-' + field);
     errDiv.innerText = '⏳ กำลังตรวจสอบข้อมูล...';
@@ -255,17 +248,15 @@
       
       if (res.isDuplicate) {
         errDiv.innerText = '❌ ข้อมูลนี้มีอยู่ในฐานข้อมูลแล้ว';
-        errDiv.style.color = '#dc3545'; // สีแดง
+        errDiv.style.color = '#dc3545';
         invalidFields.add(field);
       } else {
         errDiv.innerText = '✅ ใช้งานได้';
-        errDiv.style.color = '#28a745'; // สีเขียว
+        errDiv.style.color = '#28a745';
         invalidFields.delete(field);
         setTimeout(() => { errDiv.style.display = 'none'; }, 2000); 
       }
-    } catch (err) {
-      errDiv.style.display = 'none';
-    }
+    } catch (err) { errDiv.style.display = 'none'; }
   }
 
   function clearError(field) {
@@ -276,7 +267,6 @@
   function clearAllErrors() {
     ['cardNumber', 'fullName', 'email', 'phone'].forEach(clearError);
   }
-  // ------------------------------------------------
 
   async function startSelfRegistration() {
     currentMode = 'self';
@@ -295,27 +285,28 @@
 
   async function searchVipRegistration() {
     targetVipCard = document.getElementById('searchVipCard').value.trim().toUpperCase();
+    const searchMsg = document.getElementById('searchMsg');
+    
     if (!isValidCardIdFormat(targetVipCard)) {
-      document.getElementById('searchMsg').innerText = "รูปแบบหมายเลขบัตรไม่ถูกต้องค่ะ";
+      searchMsg.innerText = "รูปแบบหมายเลขบัตรไม่ถูกต้องค่ะ";
       return;
     }
-    document.getElementById('modeBadgeContainer').innerHTML = `<span class="mode-badge">โหมด: ทำรายการแทนบุคคลอื่น</span>`;
-    showScreen('loadingScreen');
-    await fetchUserData();
-  }
 
-  async function fetchUserData() {
-    clearAllErrors();
+    searchMsg.innerText = "⏳ กำลังตรวจสอบข้อมูลในระบบ...";
+    searchMsg.style.color = "#003366";
+
     try {
-      const url = `${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${lineUserId}&mode=${currentMode}&vipCard=${encodeURIComponent(targetVipCard)}`;
+      // ตรวจสอบกับเซิร์ฟเวอร์ตั้งแต่หน้าแรกทันที
+      const url = `${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${lineUserId}&mode=delegated&vipCard=${encodeURIComponent(targetVipCard)}`;
       const data = await fetchJSONP(url);
-      
+
       if (data.status === "error") {
-        alert(data.message);
-        showScreen(currentMode === 'self' ? 'menuScreen' : 'vipSearchScreen');
+        searchMsg.innerText = "❌ " + data.message;
+        searchMsg.style.color = "#dc3545";
         return;
       }
 
+      document.getElementById('modeBadgeContainer').innerHTML = `<span class="mode-badge">โหมด: ทำรายการแทนบุคคลอื่น</span>`;
       showScreen('mainFormScreen');
 
       if (data.status === "found") {
@@ -334,9 +325,7 @@
         
         existingCardImgUrl = user.cardImgUrl || '-';
         const linkBox = document.getElementById('cardImgLinkBox');
-        if (existingCardImgUrl && existingCardImgUrl !== '-') {
-          linkBox.innerHTML = `📎 รูปหน้าบัตรที่แนบไว้: <a href="${existingCardImgUrl}" target="_blank" style="color:#0056b3; font-weight:bold;">คลิกเพื่อดูรูปภาพ</a>`;
-        } else { linkBox.innerHTML = `<span style="color:#888;">- ยังไม่มีรูปภาพ -</span>`; }
+        linkBox.innerHTML = existingCardImgUrl !== '-' ? `📎 รูปหน้าบัตรที่แนบไว้: <a href="${existingCardImgUrl}" target="_blank" style="color:#0056b3; font-weight:bold;">คลิกเพื่อดูรูปภาพ</a>` : `<span style="color:#888;">- ยังไม่มีรูปภาพ -</span>`;
 
         renderStatusBadge(user.status);
         
@@ -359,7 +348,60 @@
       } else {
         setupNewRegistration();
       }
-    } catch (err) { console.error(err); setupNewRegistration(); showScreen('mainFormScreen'); }
+    } catch (err) {
+      searchMsg.innerText = "เกิดข้อผิดพลาดในการเชื่อมต่อ";
+      searchMsg.style.color = "#dc3545";
+    }
+  }
+
+  async function fetchUserData() {
+    clearAllErrors();
+    try {
+      const url = `${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${lineUserId}&mode=${currentMode}&vipCard=`;
+      const data = await fetchJSONP(url);
+      
+      showScreen('mainFormScreen');
+
+      if (data.status === "found") {
+        isRegistered = true;
+        const user = data.userData;
+        
+        document.getElementById('cardNumber').value = user.cardNumber || '';
+        setValueWithOther(document.getElementById('title'), user.title);
+        document.getElementById('firstName').value = user.firstName || '';
+        document.getElementById('lastName').value = user.lastName || '';
+        document.getElementById('email').value = user.email || '';
+        document.getElementById('company').value = user.company || '';
+        document.getElementById('role').value = user.role || '';
+        if (user.phone) document.getElementById('phone').value = String(user.phone).replace(/^'/, '');
+        document.getElementById('pdpa').checked = (user.pdpa === "ยอมรับ");
+        
+        existingCardImgUrl = user.cardImgUrl || '-';
+        const linkBox = document.getElementById('cardImgLinkBox');
+        linkBox.innerHTML = existingCardImgUrl !== '-' ? `📎 รูปหน้าบัตรที่แนบไว้: <a href="${existingCardImgUrl}" target="_blank" style="color:#0056b3; font-weight:bold;">คลิกเพื่อดูรูปภาพ</a>` : `<span style="color:#888;">- ยังไม่มีรูปภาพ -</span>`;
+
+        renderStatusBadge(user.status);
+        
+        const ePassContainer = document.getElementById('ePassContainer');
+        if ((user.status === 'อนุมัติ' || user.status === 'อนุมัติแล้ว') && user.ePassUrl && user.ePassUrl !== '-') {
+          ePassContainer.innerHTML = `<a href="${user.ePassUrl}" target="_blank" class="btn" style="background-color: #28a745; display: inline-block; text-decoration: none; padding: 12px 20px; box-sizing: border-box; width: 100%;">✅ ดูบัตร Device ePASS</a>`;
+          ePassContainer.style.display = 'block';
+        } else { ePassContainer.style.display = 'none'; }
+
+        currentStoredItems = [user.item1, user.item2, user.item3, user.item4, user.item5].filter(i => i && i !== '-');
+        renderStoredItemsView(user.status);
+
+        if (user.status !== "อนุมัติแล้ว" && user.status !== "อนุมัติ") {
+          document.getElementById('btnEdit').style.display = 'block';
+          document.getElementById('btnSubmit').style.display = 'none';
+        } else {
+          document.getElementById('btnEdit').style.display = 'none';
+          document.getElementById('btnSubmit').style.display = 'none';
+        }
+      } else {
+        setupNewRegistration();
+      }
+    } catch (err) { setupNewRegistration(); showScreen('mainFormScreen'); }
   }
 
   function setupNewRegistration() {
@@ -531,10 +573,7 @@
     submitBtn.disabled = true;
 
     try {
-      // ดักไว้ก่อนเลย ถ้ามี Error ค้างอยู่ไม่ให้ไปต่อ
-      if (invalidFields.size > 0) {
-        throw new Error("กรุณาแก้ไขข้อมูลที่ 'ซ้ำซ้อนในระบบ' หรือพิมพ์ผิดให้ถูกต้องก่อนบันทึกค่ะ");
-      }
+      if (invalidFields.size > 0) throw new Error("กรุณาแก้ไขข้อมูลที่ 'ซ้ำซ้อนในระบบ' ให้ถูกต้องก่อนบันทึกค่ะ");
 
       const cardNumberVal = document.getElementById('cardNumber').value.trim().toUpperCase();
       if (!isValidCardIdFormat(cardNumberVal)) throw new Error("รูปแบบ 'หมายเลขบัตรอนุญาต' ไม่ถูกต้อง");
@@ -596,7 +635,8 @@
 
       if (data.status === "success") {
         if (!isSilently) alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
-        await fetchUserData();
+        if (currentMode === 'self') await fetchUserData();
+        else searchVipRegistration();
       } else { throw new Error(data.message || "ไม่ทราบสาเหตุ"); }
 
     } catch (err) {
