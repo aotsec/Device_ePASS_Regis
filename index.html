@@ -89,16 +89,17 @@
       <div id="cardImgLinkBox" class="file-link-box"></div>
     </div>
     
+    <!-- ช่องกรอกหมายเลขบัตรครั้งที่ 1 (ห้าม Copy & Paste) -->
     <div class="form-group">
-      <label>หมายเลขบัตรอนุญาตบุคคล *</label>
-      <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" disabled oninput="this.value = this.value.toUpperCase()" onblur="validateDuplicate('cardNumber')">
+      <label>หมายเลขบัตรอนุญาตบุคคล (กรอกครั้งที่ 1 จากหน้าบัตร) *</label>
+      <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" disabled oninput="this.value = this.value.toUpperCase(); checkCardMatch();" onblur="validateDuplicate('cardNumber')" onpaste="return false;" oncopy="return false;" oncut="return false;">
       <button type="button" class="edit-field-btn" onclick="unlockField('cardNumber', this)" title="แก้ไขข้อมูล">✏️</button>
       <div id="err-cardNumber" class="error-text"></div>
     </div>
 
     <!-- ช่องยืนยันหมายเลขบัตรครั้งที่ 2 (ห้าม Copy & Paste) -->
     <div class="form-group" id="confirmCardGroup" style="display: none;">
-      <label style="color: #b91c1c;">ยืนยันหมายเลขบัตรอนุญาตบุคคล (พิมพ์ซ้ำอีกครั้งเพื่อความถูกต้อง) *</label>
+      <label style="color: #b91c1c;">ยืนยันหมายเลขบัตรอนุญาตบุคคล (พิมพ์ซ้ำอีกครั้งจากหน้าบัตร) *</label>
       <input type="text" id="confirmCardNumber" placeholder="พิมพ์ซ้ำหมายเลขบัตรอีกครั้ง" oninput="this.value = this.value.toUpperCase(); checkCardMatch();" onpaste="return false;" oncopy="return false;" oncut="return false;">
       <div id="err-confirmCard" class="error-text"></div>
     </div>
@@ -243,10 +244,12 @@
     field.style.padding = '10px 35px 10px 10px';
     btnElem.style.display = 'none';
     
-    // ถ้ายศหรือผู้ใช้ปลดล็อกหมายเลขบัตร ให้เปิดช่องยืนยันครั้งที่ 2 ด้วย
+    // หากกดแก้ไขหมายเลขบัตร ให้ล้างค่าเก่าออกและเปิดช่องยืนยันเพื่อให้พิมพ์ใหม่ทั้ง 2 รอบ
     if(fieldId === 'cardNumber') {
+      field.value = '';
       document.getElementById('confirmCardGroup').style.display = 'block';
       document.getElementById('confirmCardNumber').value = '';
+      invalidFields.add('confirmCard');
     }
 
     document.getElementById('btnSubmit').style.display = 'block';
@@ -257,14 +260,14 @@
     const val2 = document.getElementById('confirmCardNumber').value.trim().toUpperCase();
     const errDiv = document.getElementById('err-confirmCard');
 
-    if (!val2) {
+    if (!val1 || !val2) {
       errDiv.style.display = 'none';
       invalidFields.add('confirmCard');
       return;
     }
 
     if (val1 !== val2) {
-      errDiv.innerText = '❌ หมายเลขบัตรยืนยันไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง';
+      errDiv.innerText = '❌ หมายเลขบัตรทั้งสองช่องไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง';
       errDiv.style.color = '#dc3545';
       errDiv.style.display = 'block';
       invalidFields.add('confirmCard');
@@ -463,10 +466,11 @@
     existingCardImgUrl = '-';
     clearAllErrors();
     
-    // กรณีสมัครใหม่ ให้แสดงช่องยืนยันบัตรเสมอ และห้าม Copy & Paste
+    // สมัครใหม่: ล้างค่าและบังคับพิมพ์ใหม่ทั้ง 2 ช่อง
+    document.getElementById('cardNumber').value = '';
     document.getElementById('confirmCardGroup').style.display = 'block';
     document.getElementById('confirmCardNumber').value = '';
-    invalidFields.add('confirmCard'); // บังคับว่าต้องพิมพ์ยืนยันให้ผ่านก่อน
+    invalidFields.add('confirmCard');
 
     enableEditing();
     addNewItemBlock();
@@ -474,6 +478,7 @@
     if (currentMode === 'delegated' && targetVipCard) {
       document.getElementById('cardNumber').value = targetVipCard;
       document.getElementById('cardNumber').disabled = true; 
+      // ถ้าทำแทนและล็อกเลขช่องแรกแล้ว ให้ซ่อนช่องยืนยันหรือเปิดตามต้องการ (ในที่นี้ให้พิมพ์ยืนยันคู่กันเพื่อความชัวร์)
     }
   }
 
@@ -504,9 +509,7 @@
       input.style.paddingLeft = '0';
     });
 
-    // ซ่อนช่องยืนยันบัตรเวลาแสดงผลปกติ
     document.getElementById('confirmCardGroup').style.display = 'none';
-
     document.querySelectorAll('.edit-field-btn').forEach(btn => btn.style.display = 'inline-block');
     document.getElementById('btnAddItem').style.display = 'block';
     document.getElementById('btnEdit').style.display = 'none';
