@@ -19,10 +19,9 @@
     .form-group { margin-bottom: 15px; position: relative; }
     label { font-weight: bold; display: block; margin-bottom: 5px; color: #333; font-size: 14px; }
     input, select { width: 100%; padding: 10px 35px 10px 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; background-color: #fff; }
-    input:disabled, select:disabled { background-color: transparent; border: none; color: #333; font-weight: 500; padding-left: 0; }
+    input:disabled, select:disabled { background-color: transparent; border: none; color: #333; font-weight: 500; padding-left: 0; appearance: none; -webkit-appearance: none; }
     
-    /* สไตล์ปุ่มดินสอแก้ไขรายฟิลด์ */
-    .edit-field-btn { position: absolute; right: 10px; top: 32px; background: none; border: none; cursor: pointer; font-size: 16px; color: #0056b3; padding: 2px 5px; }
+    .edit-field-btn { position: absolute; right: 10px; top: 32px; background: none; border: none; cursor: pointer; font-size: 16px; color: #0056b3; padding: 2px 5px; display: none; }
     .edit-field-btn:hover { color: #003366; transform: scale(1.1); }
 
     .item-block { border: 1px dashed #0056b3; padding: 15px; border-radius: 8px; background: #f0f7ff; margin-bottom: 15px; position: relative; }
@@ -227,7 +226,6 @@
     });
   }
 
-  // ฟังก์ชันปลดล็อกเฉพาะฟิลด์ที่กดปุ่มดินสอ
   function unlockField(fieldId, btnElem) {
     const field = document.getElementById(fieldId);
     if (!field) return;
@@ -235,8 +233,8 @@
     field.style.backgroundColor = '#fff';
     field.style.border = '1px solid #ccc';
     field.style.padding = '10px 35px 10px 10px';
-    btnElem.style.display = 'none'; // ซ่อนปุ่มดินสอชั่วคราว
-    document.getElementById('btnSubmit').style.display = 'block'; // แสดงปุ่มบันทึก
+    btnElem.style.display = 'none';
+    document.getElementById('btnSubmit').style.display = 'block';
   }
 
   async function validateDuplicate(field) {
@@ -450,7 +448,6 @@
       container.appendChild(div);
     });
     
-    // ตั้งค่าฟิลด์ทั้งหมดให้อ่านอย่างเดียว (Disabled) และซ่อนปุ่มแก้ไขรวม/แสดงปุ่มดินสอรายฟิลด์แทน
     const inputs = document.querySelectorAll('#regForm input, #regForm select');
     inputs.forEach(input => {
       input.disabled = true;
