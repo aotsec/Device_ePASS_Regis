@@ -10,7 +10,6 @@
     .card { background: white; padding: 25px 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
     h2 { color: #003366; text-align: center; margin-bottom: 20px; font-size: 20px; }
     
-    /* สไตล์สำหรับปุ่มเมนูหลัก */
     .menu-btn { background-color: #ffffff; color: #003366; border: 2px solid #003366; padding: 18px; border-radius: 8px; width: 100%; font-size: 16px; cursor: pointer; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease; }
     .menu-btn:hover { background-color: #003366; color: white; }
     .menu-btn-secondary { border-color: #17a2b8; color: #17a2b8; }
@@ -43,13 +42,11 @@
 </head>
 <body>
 
-<!-- หน้าที่ 1: โหลดข้อมูล -->
 <div id="loadingScreen" class="card" style="text-align: center; padding: 40px 20px;">
   <h2 style="color: #666;">⏳ กำลังเชื่อมต่อระบบ...</h2>
   <p class="desc-text">กรุณารอสักครู่</p>
 </div>
 
-<!-- หน้าที่ 2: เมนูหลัก -->
 <div id="menuScreen" class="card" style="display: none;">
   <h2>ระบบทะเบียนอุปกรณ์อิเล็กทรอนิกส์ ทสภ.</h2>
   <p class="desc-text">ยินดีต้อนรับสู่ระบบลงทะเบียน กรุณาเลือกรูปแบบการลงทะเบียนที่ท่านต้องการดำเนินการ</p>
@@ -62,7 +59,6 @@
   </button>
 </div>
 
-<!-- หน้าที่ 3: ค้นหาบุคคลอื่น -->
 <div id="vipSearchScreen" class="card" style="display: none;">
   <h2>ลงทะเบียนแทนบุคคลอื่น</h2>
   <p class="desc-text">ระบบจะบันทึก LINE ID ของท่านในฐานะ "ผู้ดำเนินการแทน" เพื่อความปลอดภัยและตรวจสอบย้อนหลัง</p>
@@ -77,7 +73,6 @@
   <div id="searchMsg" class="status-msg"></div>
 </div>
 
-<!-- หน้าที่ 4: ฟอร์มหลัก -->
 <div id="mainFormScreen" class="card" style="display: none;">
   <button class="btn btn-back" onclick="showScreen('menuScreen')">⬅️ กลับไปเมนูหลัก</button>
   
@@ -156,11 +151,17 @@
   let existingCardImgUrl = '-';
   let isRegistered = false;
   let currentStoredItems = []; 
-  let currentMode = 'self'; // 'self' หรือ 'delegated'
+  let currentMode = 'self'; 
   let targetVipCard = '';
   
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec";
   const FETCH_TIMEOUT_MS = 45000;
+
+  // ฟังก์ชันนี้แหละค่ะที่หายไปรอบที่แล้ว มินตราเอาคืนมาให้แล้วค่าา!
+  function setStatus(msg) { 
+    const el = document.getElementById('statusMsg');
+    if(el) el.innerText = msg || ''; 
+  }
 
   function showScreen(screenId) {
     document.getElementById('loadingScreen').style.display = 'none';
@@ -308,10 +309,9 @@
     enableEditing();
     addNewItemBlock();
     
-    // ถ้าทำแทนคนอื่น ให้ล็อกช่องเลขบัตรเป็นเลขที่ค้นหามาเพื่อป้องกันกรอกผิดคน
     if (currentMode === 'delegated' && targetVipCard) {
       document.getElementById('cardNumber').value = targetVipCard;
-      document.getElementById('cardNumber').disabled = true; // ล็อกไม่ให้แก้
+      document.getElementById('cardNumber').disabled = true; 
     }
   }
 
@@ -348,7 +348,6 @@
   function enableEditing() {
     const inputs = document.querySelectorAll('#regForm input, #regForm select');
     inputs.forEach(input => {
-      // ยกเว้นกรณี delegated ที่เลขบัตรถูกฟิกซ์มาแล้ว จะไม่ให้แก้เลขบัตร
       if (input.id === 'cardNumber' && currentMode === 'delegated') return;
       input.disabled = false;
     });
@@ -368,7 +367,6 @@
     if (currentStoredItems.length < 5) document.getElementById('btnAddItem').style.display = 'block';
   }
 
-  // --- ส่วนฟังก์ชัน Dropdown และฟอร์มย่อย (เหมือนเดิม) ---
   function handleDropdownChange(selectElement) {
     let nextSibling = selectElement.nextElementSibling;
     if (selectElement.value === 'อื่นๆ') {
@@ -457,7 +455,6 @@
     return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
   }
 
-  // --- ส่วนส่งข้อมูล Submit ---
   document.getElementById('regForm').addEventListener('submit', function (e) {
     e.preventDefault();
     submitFormData(false);
@@ -528,7 +525,6 @@
 
       if (data.status === "success") {
         if (!isSilently) alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
-        // โหลดข้อมูลในโหมดเดิมกลับมาเพื่อรีเฟรชหน้า
         await fetchUserData();
       } else { throw new Error(data.message || "ไม่ทราบสาเหตุ"); }
 
