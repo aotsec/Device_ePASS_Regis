@@ -7,8 +7,16 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 15px; margin: 0; }
-    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+    .card { background: white; padding: 25px 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
     h2 { color: #003366; text-align: center; margin-bottom: 20px; font-size: 20px; }
+    
+    /* สไตล์สำหรับปุ่มเมนูหลัก */
+    .menu-btn { background-color: #ffffff; color: #003366; border: 2px solid #003366; padding: 18px; border-radius: 8px; width: 100%; font-size: 16px; cursor: pointer; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease; }
+    .menu-btn:hover { background-color: #003366; color: white; }
+    .menu-btn-secondary { border-color: #17a2b8; color: #17a2b8; }
+    .menu-btn-secondary:hover { background-color: #17a2b8; color: white; }
+    .desc-text { font-size: 13px; color: #666; text-align: center; margin-bottom: 25px; line-height: 1.5; }
+
     .form-group { margin-bottom: 15px; }
     label { font-weight: bold; display: block; margin-bottom: 5px; color: #333; font-size: 14px; }
     input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
@@ -19,31 +27,64 @@
     .btn-add { background-color: #28a745; margin-bottom: 15px; }
     .btn-remove { background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; float: right; }
     .btn-edit { background-color: #ffc107; color: #333; margin-bottom: 15px; }
+    .btn-back { background-color: #6c757d; margin-bottom: 20px; font-size: 14px; padding: 8px; }
+    
     .pdpa-box { font-size: 13px; color: #555; background: #eee; padding: 10px; border-radius: 6px; margin-bottom: 15px; }
     .status-msg { text-align:center; font-size:13px; color:#003366; margin-top:8px; min-height:18px; font-weight: bold; }
     .other-input { width: 100%; padding: 10px; border: 1px dashed #ff9900; border-radius: 6px; margin-top: 8px; box-sizing: border-box; font-size: 14px; background-color: #fff9f0; }
-    .security-warning { background-color: #fff3cd; color: #856404; padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 20px; border: 1px solid #ffeeba; line-height: 1.5; }
     .status-badge { padding: 8px 12px; border-radius: 6px; font-weight: bold; text-align: center; margin-bottom: 20px; }
     .status-pending { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
     .status-approved { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .status-rejected { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
     .file-link-box { font-size: 13px; margin-top: 5px; }
     .hint-text { font-size: 11px; color: #666; margin-top: 3px; }
+    .mode-badge { background: #17a2b8; color: white; font-size: 12px; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 15px; font-weight: normal; }
   </style>
 </head>
 <body>
 
-<div class="card">
-  <h2>ลงทะเบียน / ตรวจสอบข้อมูลอุปกรณ์ ทสภ.</h2>
-  
-  <div class="security-warning">
-    <strong>⚠️ คำเตือนความปลอดภัย:</strong><br>
-    การลงทะเบียนนี้ผูกกับ <b>"บัญชี LINE ส่วนตัวของคุณ"</b> เท่านั้น ห้ามทำรายการแทนบุคคลอื่นโดยเด็ดขาด
-  </div>
+<!-- หน้าที่ 1: โหลดข้อมูล -->
+<div id="loadingScreen" class="card" style="text-align: center; padding: 40px 20px;">
+  <h2 style="color: #666;">⏳ กำลังเชื่อมต่อระบบ...</h2>
+  <p class="desc-text">กรุณารอสักครู่</p>
+</div>
 
-  <div id="statusBadgeContainer"></div>
+<!-- หน้าที่ 2: เมนูหลัก -->
+<div id="menuScreen" class="card" style="display: none;">
+  <h2>ระบบทะเบียนอุปกรณ์อิเล็กทรอนิกส์ ทสภ.</h2>
+  <p class="desc-text">ยินดีต้อนรับสู่ระบบลงทะเบียน กรุณาเลือกรูปแบบการลงทะเบียนที่ท่านต้องการดำเนินการ</p>
   
-  <!-- คอนเทนเนอร์สำหรับปุ่ม Device ePASS (ซ่อนไว้ก่อน) -->
+  <button class="menu-btn" onclick="startSelfRegistration()">
+    👤 ลงทะเบียนอุปกรณ์ของตนเอง
+  </button>
+  <button class="menu-btn menu-btn-secondary" onclick="showVipSearch()">
+    👥 ลงทะเบียนแทนบุคคลอื่น<br><span style="font-size: 12px; font-weight: normal;">(สำหรับผู้บังคับบัญชา / ผู้ไม่สะดวกใช้ LINE)</span>
+  </button>
+</div>
+
+<!-- หน้าที่ 3: ค้นหาบุคคลอื่น -->
+<div id="vipSearchScreen" class="card" style="display: none;">
+  <h2>ลงทะเบียนแทนบุคคลอื่น</h2>
+  <p class="desc-text">ระบบจะบันทึก LINE ID ของท่านในฐานะ "ผู้ดำเนินการแทน" เพื่อความปลอดภัยและตรวจสอบย้อนหลัง</p>
+  
+  <div class="form-group">
+    <label>หมายเลขบัตรอนุญาตบุคคลของผู้บังคับบัญชา *</label>
+    <input type="text" id="searchVipCard" placeholder="เช่น SUV/17330/00807/68" oninput="this.value = this.value.toUpperCase()">
+  </div>
+  
+  <button class="btn" style="background-color: #17a2b8; margin-bottom: 10px;" onclick="searchVipRegistration()">🔍 ตรวจสอบ / สร้างข้อมูลใหม่</button>
+  <button class="btn btn-back" onclick="showScreen('menuScreen')">⬅️ ย้อนกลับไปเมนูหลัก</button>
+  <div id="searchMsg" class="status-msg"></div>
+</div>
+
+<!-- หน้าที่ 4: ฟอร์มหลัก -->
+<div id="mainFormScreen" class="card" style="display: none;">
+  <button class="btn btn-back" onclick="showScreen('menuScreen')">⬅️ กลับไปเมนูหลัก</button>
+  
+  <h2 style="margin-bottom: 5px;">แบบฟอร์มข้อมูลอุปกรณ์</h2>
+  <div id="modeBadgeContainer" style="text-align: center;"></div>
+  
+  <div id="statusBadgeContainer"></div>
   <div id="ePassContainer" style="display: none; margin-bottom: 20px; text-align: center;"></div>
 
   <form id="regForm">
@@ -60,9 +101,7 @@
 
     <div class="form-group">
       <label>คำนำหน้าชื่อ *</label>
-      <select id="title" required disabled onchange="handleDropdownChange(this)">
-        <option value="">-- กำลังโหลดรายการ --</option>
-      </select>
+      <select id="title" required disabled onchange="handleDropdownChange(this)"><option value="">-- กำลังโหลดรายการ --</option></select>
     </div>
 
     <div class="form-group">
@@ -97,16 +136,12 @@
 
     <hr style="margin: 20px 0;">
     <h3 style="font-size:16px; color:#003366;">รายการลงทะเบียนอุปกรณ์ (สูงสุด 5 รายการ)</h3>
-
     <div id="itemsContainer"></div>
-
     <button type="button" id="btnAddItem" class="btn btn-add" style="display:none;" onclick="addNewItemBlock()">+ เพิ่มรายการอุปกรณ์ใหม่</button>
 
     <div class="pdpa-box">
       <input type="checkbox" id="pdpa" required style="width: auto;" disabled>
-      <label for="pdpa" style="display:inline; font-weight:normal;">
-        ข้าพเจ้ายินยอมให้ใช้ข้อมูลเพื่อการตรวจสอบตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)
-      </label>
+      <label for="pdpa" style="display:inline; font-weight:normal;">ข้าพเจ้ายินยอมให้ใช้ข้อมูลเพื่อการตรวจสอบตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)</label>
     </div>
 
     <button type="button" id="btnEdit" class="btn btn-edit" style="display:none;" onclick="enableEditing()">✏️ แก้ไขข้อมูล / จัดการอุปกรณ์</button>
@@ -121,12 +156,219 @@
   let existingCardImgUrl = '-';
   let isRegistered = false;
   let currentStoredItems = []; 
+  let currentMode = 'self'; // 'self' หรือ 'delegated'
+  let targetVipCard = '';
   
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec";
   const FETCH_TIMEOUT_MS = 45000;
 
-  function setStatus(msg) { document.getElementById('statusMsg').innerText = msg || ''; }
+  function showScreen(screenId) {
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('menuScreen').style.display = 'none';
+    document.getElementById('vipSearchScreen').style.display = 'none';
+    document.getElementById('mainFormScreen').style.display = 'none';
+    document.getElementById(screenId).style.display = 'block';
+  }
 
+  function isValidCardIdFormat(cardId) {
+    const patterns = [
+      /^\d{6}\/\d{5}\/\d{2}$/,
+      /^(SUV|DMK|CEI|CNX|HKT|HDY)\/\d{5}\/\d{5}\/\d{2}$/,
+      /^(SUV|DMK|CEI|CNX|HKT|HDY)\d{6}\/\d{5}[A-Z]$/,
+      /^(SUV|DMK|CEI|CNX|HKT|HDY)\/\d{8}\/\d{5}\/\d{2}$/
+    ];
+    return patterns.some(p => p.test(cardId));
+  }
+
+  window.onload = async function() {
+    await fetchConfig();
+    liff.init({ liffId: "2011647032-x6HiAaYa" }).then(async () => {
+      if (liff.isLoggedIn()) {
+        const profile = await liff.getProfile(); 
+        lineUserId = profile.userId; 
+        showScreen('menuScreen');
+      } else { liff.login(); }
+    }).catch(err => { console.error(err); alert("ไม่สามารถเชื่อมต่อ LINE ได้"); });
+  };
+
+  async function fetchConfig() {
+    try {
+      const data = await fetchJSONP(`${GAS_WEB_APP_URL}?action=getConfig`);
+      if (data.status === "success") { 
+        configData = data.config; 
+        populateDropdown('title', configData.titles); 
+      }
+    } catch (err) { console.error("โหลดตัวเลือกไม่สำเร็จ"); }
+  }
+
+  function fetchJSONP(url) {
+    return new Promise((resolve, reject) => {
+      const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
+      const script = document.createElement('script');
+      const timer = setTimeout(() => { reject(new Error("หมดเวลาเชื่อมต่อ")); cleanup(); }, 15000);
+      function cleanup() { if (document.body.contains(script)) document.body.removeChild(script); delete window[callbackName]; clearTimeout(timer); }
+      window[callbackName] = function(data) { resolve(data); cleanup(); };
+      script.src = `${url}&callback=${callbackName}`; script.onerror = () => { reject(new Error("เชื่อมต่อฐานข้อมูลล้มเหลว")); cleanup(); };
+      document.body.appendChild(script);
+    });
+  }
+
+  async function startSelfRegistration() {
+    currentMode = 'self';
+    targetVipCard = '';
+    document.getElementById('modeBadgeContainer').innerHTML = `<span class="mode-badge" style="background:#003366;">โหมด: ข้อมูลส่วนตัว</span>`;
+    showScreen('loadingScreen');
+    await fetchUserData();
+  }
+
+  function showVipSearch() {
+    currentMode = 'delegated';
+    document.getElementById('searchVipCard').value = '';
+    document.getElementById('searchMsg').innerText = '';
+    showScreen('vipSearchScreen');
+  }
+
+  async function searchVipRegistration() {
+    targetVipCard = document.getElementById('searchVipCard').value.trim().toUpperCase();
+    if (!isValidCardIdFormat(targetVipCard)) {
+      document.getElementById('searchMsg').innerText = "รูปแบบหมายเลขบัตรไม่ถูกต้องค่ะ";
+      return;
+    }
+    document.getElementById('modeBadgeContainer').innerHTML = `<span class="mode-badge">โหมด: ทำรายการแทนบุคคลอื่น</span>`;
+    showScreen('loadingScreen');
+    await fetchUserData();
+  }
+
+  async function fetchUserData() {
+    try {
+      const url = `${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${lineUserId}&mode=${currentMode}&vipCard=${encodeURIComponent(targetVipCard)}`;
+      const data = await fetchJSONP(url);
+      
+      if (data.status === "error") {
+        alert(data.message);
+        showScreen(currentMode === 'self' ? 'menuScreen' : 'vipSearchScreen');
+        return;
+      }
+
+      showScreen('mainFormScreen');
+
+      if (data.status === "found") {
+        isRegistered = true;
+        const user = data.userData;
+        
+        document.getElementById('cardNumber').value = user.cardNumber || '';
+        setValueWithOther(document.getElementById('title'), user.title);
+        document.getElementById('firstName').value = user.firstName || '';
+        document.getElementById('lastName').value = user.lastName || '';
+        document.getElementById('email').value = user.email || '';
+        document.getElementById('company').value = user.company || '';
+        document.getElementById('role').value = user.role || '';
+        if (user.phone) document.getElementById('phone').value = String(user.phone).replace(/^'/, '');
+        document.getElementById('pdpa').checked = (user.pdpa === "ยอมรับ");
+        
+        existingCardImgUrl = user.cardImgUrl || '-';
+        const linkBox = document.getElementById('cardImgLinkBox');
+        if (existingCardImgUrl && existingCardImgUrl !== '-') {
+          linkBox.innerHTML = `📎 รูปหน้าบัตรที่แนบไว้: <a href="${existingCardImgUrl}" target="_blank" style="color:#0056b3; font-weight:bold;">คลิกเพื่อดูรูปภาพ</a>`;
+        } else { linkBox.innerHTML = `<span style="color:#888;">- ยังไม่มีรูปภาพ -</span>`; }
+
+        renderStatusBadge(user.status);
+        
+        const ePassContainer = document.getElementById('ePassContainer');
+        if ((user.status === 'อนุมัติ' || user.status === 'อนุมัติแล้ว') && user.ePassUrl && user.ePassUrl !== '-') {
+          ePassContainer.innerHTML = `<a href="${user.ePassUrl}" target="_blank" class="btn" style="background-color: #28a745; display: inline-block; text-decoration: none; padding: 12px 20px; box-sizing: border-box; width: 100%;">✅ ดูบัตร Device ePASS</a>`;
+          ePassContainer.style.display = 'block';
+        } else { ePassContainer.style.display = 'none'; }
+
+        currentStoredItems = [user.item1, user.item2, user.item3, user.item4, user.item5].filter(i => i && i !== '-');
+        renderStoredItemsView(user.status);
+
+        if (user.status !== "อนุมัติแล้ว" && user.status !== "อนุมัติ") {
+          document.getElementById('btnEdit').style.display = 'block';
+          document.getElementById('btnSubmit').style.display = 'none';
+        } else {
+          document.getElementById('btnEdit').style.display = 'none';
+          document.getElementById('btnSubmit').style.display = 'none';
+        }
+      } else {
+        setupNewRegistration();
+      }
+    } catch (err) { console.error(err); setupNewRegistration(); showScreen('mainFormScreen'); }
+  }
+
+  function setupNewRegistration() {
+    isRegistered = false;
+    currentStoredItems = [];
+    document.getElementById('regForm').reset();
+    document.getElementById('statusBadgeContainer').innerHTML = '';
+    document.getElementById('ePassContainer').style.display = 'none';
+    document.getElementById('cardImgLinkBox').innerHTML = '';
+    existingCardImgUrl = '-';
+    
+    enableEditing();
+    addNewItemBlock();
+    
+    // ถ้าทำแทนคนอื่น ให้ล็อกช่องเลขบัตรเป็นเลขที่ค้นหามาเพื่อป้องกันกรอกผิดคน
+    if (currentMode === 'delegated' && targetVipCard) {
+      document.getElementById('cardNumber').value = targetVipCard;
+      document.getElementById('cardNumber').disabled = true; // ล็อกไม่ให้แก้
+    }
+  }
+
+  function renderStatusBadge(status) {
+    const container = document.getElementById('statusBadgeContainer');
+    let badgeClass = 'status-pending';
+    if (status === 'อนุมัติ' || status === 'อนุมัติแล้ว') badgeClass = 'status-approved';
+    else if (status && status.startsWith('ไม่ผ่าน')) badgeClass = 'status-rejected';
+    container.innerHTML = `<div class="status-badge ${badgeClass}">สถานะปัจจุบัน: ${status}</div>`;
+  }
+
+  function renderStoredItemsView(status) {
+    const container = document.getElementById('itemsContainer');
+    container.innerHTML = '';
+    currentStoredItems.forEach((itemStr, index) => {
+      const div = document.createElement('div');
+      div.className = 'item-block';
+      let deleteBtnHTML = (status !== "อนุมัติแล้ว" && status !== "อนุมัติ") ? `<button type="button" class="btn-remove" onclick="removeStoredItemIndex(${index})">🗑️ ลบรายการนี้</button>` : '';
+      div.innerHTML = `<span style="font-size:14px; font-weight:500;">รายการที่ ${index + 1}: ${itemStr}</span> ${deleteBtnHTML}`;
+      container.appendChild(div);
+    });
+    
+    const inputs = document.querySelectorAll('#regForm input:not(#cardNumber), #regForm select');
+    inputs.forEach(input => input.disabled = true);
+  }
+
+  async function removeStoredItemIndex(index) {
+    if (currentStoredItems.length <= 1) return alert("ระบบต้องมีอุปกรณ์อย่างน้อย 1 รายการค่ะ");
+    if (!confirm("ต้องการลบรายการนี้และบันทึกทันทีใช่หรือไม่?")) return;
+    currentStoredItems.splice(index, 1);
+    submitFormData(true);
+  }
+
+  function enableEditing() {
+    const inputs = document.querySelectorAll('#regForm input, #regForm select');
+    inputs.forEach(input => {
+      // ยกเว้นกรณี delegated ที่เลขบัตรถูกฟิกซ์มาแล้ว จะไม่ให้แก้เลขบัตร
+      if (input.id === 'cardNumber' && currentMode === 'delegated') return;
+      input.disabled = false;
+    });
+    document.getElementById('btnEdit').style.display = 'none';
+    document.getElementById('btnSubmit').style.display = 'block';
+    
+    const container = document.getElementById('itemsContainer');
+    container.innerHTML = '';
+    currentStoredItems.forEach((itemStr, index) => {
+      const div = document.createElement('div');
+      div.className = 'item-block';
+      div.style.background = '#e2e8f0';
+      div.innerHTML = `<span style="font-size:14px; font-weight:500; color:#555;">[รายการเดิม ${index + 1}] ${itemStr}</span>`;
+      container.appendChild(div);
+    });
+
+    if (currentStoredItems.length < 5) document.getElementById('btnAddItem').style.display = 'block';
+  }
+
+  // --- ส่วนฟังก์ชัน Dropdown และฟอร์มย่อย (เหมือนเดิม) ---
   function handleDropdownChange(selectElement) {
     let nextSibling = selectElement.nextElementSibling;
     if (selectElement.value === 'อื่นๆ') {
@@ -154,204 +396,24 @@
     const brandVal = brandSelect.value;
     const block = brandSelect.closest('.newItemBlock');
     const modelSelect = block.querySelector('.newItem-model');
-    
     modelSelect.innerHTML = '<option value="">-- เลือกรุ่น --</option>';
     let nextSibling = modelSelect.nextElementSibling;
     if (nextSibling && nextSibling.classList.contains('other-input')) nextSibling.remove();
-
     if (configData.brandModels && configData.brandModels[brandVal]) {
-      const models = configData.brandModels[brandVal];
-      models.forEach(m => {
-        modelSelect.innerHTML += `<option value="${m}">${m}</option>`;
-      });
+      configData.brandModels[brandVal].forEach(m => modelSelect.innerHTML += `<option value="${m}">${m}</option>`);
     }
     modelSelect.innerHTML += `<option value="อื่นๆ">อื่นๆ (พิมพ์ระบุเอง)</option>`;
   }
 
   function formatSerialInput(input) {
     let cleanVal = input.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    if (cleanVal.length > 5) {
-      cleanVal = cleanVal.slice(-5);
-    }
-    if (cleanVal.length > 0) {
-      input.value = '***' + cleanVal;
-    } else {
-      input.value = '';
-    }
-  }
-
-  function fetchJSONP(url) {
-    return new Promise((resolve, reject) => {
-      const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
-      const script = document.createElement('script');
-      const timer = setTimeout(() => { reject(new Error("หมดเวลาเชื่อมต่อ")); cleanup(); }, 15000);
-      function cleanup() { if (document.body.contains(script)) document.body.removeChild(script); delete window[callbackName]; clearTimeout(timer); }
-      window[callbackName] = function(data) { resolve(data); cleanup(); };
-      script.src = `${url}&callback=${callbackName}`; script.onerror = () => { reject(new Error("เชื่อมต่อฐานข้อมูลล้มเหลว")); cleanup(); };
-      document.body.appendChild(script);
-    });
-  }
-
-  window.onload = async function() {
-    await fetchConfig();
-    liff.init({ liffId: "2011647032-x6HiAaYa" }).then(async () => {
-      if (liff.isLoggedIn()) {
-        const profile = await liff.getProfile(); lineUserId = profile.userId; await fetchUserData(lineUserId);
-      } else { liff.login(); }
-    }).catch(err => { console.error(err); setupNewRegistration(); });
-  };
-
-  async function fetchConfig() {
-    try {
-      const data = await fetchJSONP(`${GAS_WEB_APP_URL}?action=getConfig`);
-      if (data.status === "success") { configData = data.config; populateDropdown('title', configData.titles); }
-    } catch (err) { setStatus("โหลดตัวเลือกไม่สำเร็จ"); }
-  }
-
-  async function fetchUserData(userId) {
-    try {
-      const data = await fetchJSONP(`${GAS_WEB_APP_URL}?action=getUserData&lineUserId=${userId}`);
-      if (data.status === "found") {
-        isRegistered = true;
-        const user = data.userData;
-        
-        document.getElementById('cardNumber').value = user.cardNumber || '';
-        setValueWithOther(document.getElementById('title'), user.title);
-        document.getElementById('firstName').value = user.firstName || '';
-        document.getElementById('lastName').value = user.lastName || '';
-        document.getElementById('email').value = user.email || '';
-        document.getElementById('company').value = user.company || '';
-        document.getElementById('role').value = user.role || '';
-        if (user.phone) document.getElementById('phone').value = String(user.phone).replace(/^'/, '');
-        document.getElementById('pdpa').checked = (user.pdpa === "ยอมรับ");
-        
-        existingCardImgUrl = user.cardImgUrl || '-';
-        const linkBox = document.getElementById('cardImgLinkBox');
-        if (existingCardImgUrl && existingCardImgUrl !== '-') {
-          linkBox.innerHTML = `📎 รูปหน้าบัตรที่แนบไว้: <a href="${existingCardImgUrl}" target="_blank" style="color:#0056b3; font-weight:bold;">คลิกเพื่อดูรูปภาพ</a>`;
-        } else {
-          linkBox.innerHTML = `<span style="color:#888;">- ยังไม่มีรูปภาพ -</span>`;
-        }
-
-        renderStatusBadge(user.status);
-        
-        // --- ส่วนแสดงปุ่ม Device ePASS ถ้าได้รับอนุมัติ ---
-        const ePassContainer = document.getElementById('ePassContainer');
-        if ((user.status === 'อนุมัติ' || user.status === 'อนุมัติแล้ว') && user.ePassUrl && user.ePassUrl !== '-') {
-          ePassContainer.innerHTML = `<a href="${user.ePassUrl}" target="_blank" class="btn" style="background-color: #28a745; display: inline-block; text-decoration: none; padding: 12px 20px; box-sizing: border-box; width: 100%;">✅ ดูบัตร Device ePASS ของคุณ</a>`;
-          ePassContainer.style.display = 'block';
-        } else {
-          ePassContainer.style.display = 'none';
-        }
-        // ------------------------------------------
-
-        currentStoredItems = [user.item1, user.item2, user.item3, user.item4, user.item5].filter(i => i && i !== '-');
-        renderStoredItemsView(user.status);
-
-        if (user.status !== "อนุมัติแล้ว" && user.status !== "อนุมัติ") {
-          document.getElementById('btnEdit').style.display = 'block';
-        }
-      } else {
-        setupNewRegistration();
-      }
-    } catch (err) { console.error(err); setupNewRegistration(); }
-  }
-
-  function setupNewRegistration() {
-    isRegistered = false;
-    currentStoredItems = [];
-    enableEditing();
-    addNewItemBlock();
-    document.getElementById('btnEdit').style.display = 'none';
-    document.getElementById('ePassContainer').style.display = 'none';
-  }
-
-  function renderStatusBadge(status) {
-    const container = document.getElementById('statusBadgeContainer');
-    let badgeClass = 'status-pending';
-    if (status === 'อนุมัติ' || status === 'อนุมัติแล้ว') badgeClass = 'status-approved';
-    else if (status && status.startsWith('ไม่ผ่าน')) badgeClass = 'status-rejected';
-
-    container.innerHTML = `<div class="status-badge ${badgeClass}">สถานะปัจจุบัน: ${status}</div>`;
-  }
-
-  function renderStoredItemsView(status) {
-    const container = document.getElementById('itemsContainer');
-    container.innerHTML = '';
-    
-    currentStoredItems.forEach((itemStr, index) => {
-      const div = document.createElement('div');
-      div.className = 'item-block';
-      let deleteBtnHTML = (status !== "อนุมัติแล้ว" && status !== "อนุมัติ") ? `<button type="button" class="btn-remove" onclick="removeStoredItemIndex(${index})">🗑️ ลบรายการนี้</button>` : '';
-      div.innerHTML = `<span style="font-size:14px; font-weight:500;">รายการที่ ${index + 1}: ${itemStr}</span> ${deleteBtnHTML}`;
-      container.appendChild(div);
-    });
-  }
-
-  async function removeStoredItemIndex(index) {
-    if (currentStoredItems.length <= 1) {
-      alert("ไม่สามารถลบจนหมดได้ ระบบต้องมีอุปกรณ์อย่างน้อย 1 รายการค่ะ");
-      return;
-    }
-    if (!confirm("คุณต้องการลบรายการนี้ใช่หรือไม่? ระบบจะบันทึกการเปลี่ยนแปลงทันที")) return;
-
-    currentStoredItems.splice(index, 1);
-    
-    try {
-      setStatus("กำลังอัปเดตรายการ...");
-      const payload = {
-        lineUserId: lineUserId,
-        cardNumber: document.getElementById('cardNumber').value.trim().toUpperCase(),
-        title: getActualValue(document.getElementById('title')),
-        firstName: document.getElementById('firstName').value.trim(),
-        lastName: document.getElementById('lastName').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        company: document.getElementById('company').value.trim(),
-        role: document.getElementById('role').value.trim(),
-        phone: "'" + document.getElementById('phone').value.trim(),
-        existingCardImgUrl: existingCardImgUrl,
-        itemsRaw: currentStoredItems, 
-        pdpaAccepted: document.getElementById('pdpa').checked
-      };
-
-      const res = await fetchWithTimeout(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' }, FETCH_TIMEOUT_MS);
-      const data = await res.json();
-      if (data.status === "success") {
-        alert("ลบรายการเรียบร้อยแล้วค่ะ!");
-        location.reload();
-      } else { throw new Error(data.message); }
-    } catch (err) {
-      alert("เกิดข้อผิดพลาด: " + err.message);
-      setStatus("");
-    }
-  }
-
-  function enableEditing() {
-    const inputs = document.querySelectorAll('#regForm input, #regForm select');
-    inputs.forEach(input => input.disabled = false);
-    document.getElementById('btnEdit').style.display = 'none';
-    document.getElementById('btnSubmit').style.display = 'block';
-    document.getElementById('cardImg').disabled = false;
-    
-    const container = document.getElementById('itemsContainer');
-    container.innerHTML = '';
-    
-    currentStoredItems.forEach((itemStr, index) => {
-      const div = document.createElement('div');
-      div.className = 'item-block';
-      div.style.background = '#e2e8f0';
-      div.innerHTML = `<span style="font-size:14px; font-weight:500; color:#555;">[รายการเดิม ${index + 1}] ${itemStr}</span>`;
-      container.appendChild(div);
-    });
-
-    if (currentStoredItems.length < 5) {
-      document.getElementById('btnAddItem').style.display = 'block';
-    }
+    if (cleanVal.length > 5) cleanVal = cleanVal.slice(-5);
+    input.value = cleanVal.length > 0 ? '***' + cleanVal : '';
   }
 
   function populateDropdown(elemId, optionsList) {
     const select = document.getElementById(elemId); select.innerHTML = '<option value="">-- เลือกรายการ --</option>';
-    if (optionsList) optionsList.forEach(opt => { select.innerHTML += `<option value="${opt}">${opt}</option>`; });
+    if (optionsList) optionsList.forEach(opt => select.innerHTML += `<option value="${opt}">${opt}</option>`);
   }
 
   function addNewItemBlock() {
@@ -369,28 +431,9 @@
     div.innerHTML = `
       <h4 style="margin-top:0; color:#166534;">เพิ่มอุปกรณ์ใหม่ <button type="button" class="btn-remove" onclick="this.closest('.item-block').remove(); updateAddButton();">🗑️ ยกเลิก</button></h4>
       <div class="form-group"><label>ประเภทอุปกรณ์ *</label><select class="newItem-type" required onchange="handleDropdownChange(this)"><option value="">-- เลือกประเภท --</option>${typeOpts}</select></div>
-      
-      <div class="form-group">
-        <label>ยี่ห้อ *</label>
-        <select class="newItem-brand" required onchange="updateModelDropdown(this); handleDropdownChange(this);">
-          <option value="">-- เลือกยี่ห้อ --</option>
-          ${brandOpts}
-          <option value="อื่นๆ">อื่นๆ (พิมพ์ระบุเอง)</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>รุ่น / โมเดล *</label>
-        <select class="newItem-model" required onchange="handleDropdownChange(this)">
-          <option value="">-- กรุณาเลือกยี่ห้อก่อน --</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>S/N หรือ IMEI (เลขท้าย 5 หลัก) *</label>
-        <input type="text" class="newItem-serial" required placeholder="กรอก S/N หรือ IMEI" oninput="formatSerialInput(this)">
-        <div class="hint-text">ระบบจะแสดงผลและบันทึกเฉพาะเลขท้าย 5 หลักในรูปแบบ ***XXXXX อัตโนมัติ</div>
-      </div>
+      <div class="form-group"><label>ยี่ห้อ *</label><select class="newItem-brand" required onchange="updateModelDropdown(this); handleDropdownChange(this);"><option value="">-- เลือกยี่ห้อ --</option>${brandOpts}<option value="อื่นๆ">อื่นๆ (พิมพ์ระบุเอง)</option></select></div>
+      <div class="form-group"><label>รุ่น / โมเดล *</label><select class="newItem-model" required onchange="handleDropdownChange(this)"><option value="">-- กรุณาเลือกยี่ห้อก่อน --</option></select></div>
+      <div class="form-group"><label>S/N หรือ IMEI (เลขท้าย 5 หลัก) *</label><input type="text" class="newItem-serial" required placeholder="กรอก S/N หรือ IMEI" oninput="formatSerialInput(this)"><div class="hint-text">ระบบจะแสดงผลและบันทึกเฉพาะเลขท้าย 5 หลักในรูปแบบ ***XXXXX อัตโนมัติ</div></div>
       <div class="form-group"><label>สี *</label><select class="newItem-color" required onchange="handleDropdownChange(this)"><option value="">-- เลือกสี --</option>${colorOpts}</select></div>
     `;
     document.getElementById('itemsContainer').appendChild(div);
@@ -404,10 +447,8 @@
 
   function fileToBase64(file) {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
+      const reader = new FileReader(); reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result); reader.onerror = error => reject(error);
     });
   }
 
@@ -416,35 +457,23 @@
     return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
   }
 
-  document.getElementById('regForm').addEventListener('submit', async function (e) {
+  // --- ส่วนส่งข้อมูล Submit ---
+  document.getElementById('regForm').addEventListener('submit', function (e) {
     e.preventDefault();
+    submitFormData(false);
+  });
+
+  async function submitFormData(isSilently = false) {
     const submitBtn = document.getElementById('btnSubmit');
     submitBtn.disabled = true;
 
     try {
       const cardNumberVal = document.getElementById('cardNumber').value.trim().toUpperCase();
-      function isValidCardIdFormat(cardId) {
-        const patterns = [
-          /^\d{6}\/\d{5}\/\d{2}$/,
-          /^(SUV|DMK|CEI|CNX|HKT|HDY)\/\d{5}\/\d{5}\/\d{2}$/,
-          /^(SUV|DMK|CEI|CNX|HKT|HDY)\d{6}\/\d{5}[A-Z]$/,
-          /^(SUV|DMK|CEI|CNX|HKT|HDY)\/\d{8}\/\d{5}\/\d{2}$/
-        ];
-        return patterns.some(p => p.test(cardId));
-      }
-
-      if (!isValidCardIdFormat(cardNumberVal)) {
-        throw new Error("รูปแบบ 'หมายเลขบัตรอนุญาต' ไม่ถูกต้อง\nกรุณาตรวจสอบให้ตรงกับหน้าบัตร (เช่น SUV/17330/00807/68)");
-      }
+      if (!isValidCardIdFormat(cardNumberVal)) throw new Error("รูปแบบ 'หมายเลขบัตรอนุญาต' ไม่ถูกต้อง");
       
       const firstNameVal = document.getElementById('firstName').value.trim();
       if (['นาย', 'นาง', 'นางสาว', 'น.ส.', 'ด.ช.', 'ด.ญ.', 'ว่าที่ร้อย'].some(t => firstNameVal.startsWith(t)) || firstNameVal.includes(' ')) {
         throw new Error("ช่อง 'ชื่อ' ห้ามใส่คำนำหน้า และห้ามเว้นวรรคค่ะ");
-      }
-      
-      const lastNameVal = document.getElementById('lastName').value.trim();
-      if (lastNameVal.includes(firstNameVal) || firstNameVal.includes(lastNameVal)) {
-        throw new Error("ตรวจพบข้อมูลซ้ำซ้อนระหว่าง ชื่อ-นามสกุล");
       }
       
       const phoneVal = document.getElementById('phone').value.trim();
@@ -459,22 +488,16 @@
         const modelVal = getActualValue(block.querySelector('.newItem-model'));
         const serialVal = block.querySelector('.newItem-serial').value.trim().toUpperCase();
         
-        if (!/^\*\*\*[A-Z0-9]{5}$/.test(serialVal)) {
-          throw new Error("หมายเลข S/N หรือ IMEI ของอุปกรณ์ใหม่ต้องกรอกและแสดงผลเป็นเลขท้าย 5 หลักในรูปแบบ ***XXXXX ให้สมบูรณ์ค่ะ");
-        }
+        if (!/^\*\*\*[A-Z0-9]{5}$/.test(serialVal)) throw new Error("หมายเลข S/N หรือ IMEI ของอุปกรณ์ใหม่ต้องเป็น ***XXXXX ค่ะ");
 
         const raw5Digits = serialVal.replace('***', '');
         if (configData.blacklistSN && configData.blacklistSN.includes(raw5Digits)) {
-          throw new Error(`หมายเลข S/N หรือ IMEI (${serialVal}) อยู่ในรายการไม่อนุญาตให้ใช้งาน เนื่องจากเป็นรูปแบบที่ไม่ถูกต้อง กรุณาตรวจสอบใหม่อีกครั้ง`);
+          throw new Error(`หมายเลข S/N (${serialVal}) อยู่ในรายการไม่อนุญาตให้ใช้งาน`);
         }
 
         if (configData.warnSN && configData.warnSN.includes(raw5Digits)) {
-          const confirmWarn = confirm(`⚠️ คำเตือน: หมายเลข S/N (${serialVal}) ตรงกับรูปแบบที่ต้องตรวจสอบเป็นพิเศษ ท่านมั่นใจหรือไม่ว่านี่คือ S/N ของจริงจากตัวเครื่อง?`);
-          if (!confirmWarn) {
-            submitBtn.disabled = false;
-            submitBtn.innerText = "บันทึกข้อมูลการเปลี่ยนแปลง";
-            return;
-          }
+          const confirmWarn = confirm(`⚠️ คำเตือน: หมายเลข S/N (${serialVal}) ตรงกับรูปแบบที่ต้องตรวจสอบเป็นพิเศษ ท่านมั่นใจหรือไม่ว่านี่คือ S/N ของจริง?`);
+          if (!confirmWarn) { submitBtn.disabled = false; return; }
         }
 
         const colorVal = getActualValue(block.querySelector('.newItem-color'));
@@ -482,51 +505,41 @@
       }
 
       const finalItemsList = [...currentStoredItems, ...newlyAddedItems];
-      if (finalItemsList.length === 0) {
-        throw new Error("กรุณามีรายการอุปกรณ์อย่างน้อย 1 รายการก่อนทำการบันทึกค่ะ");
-      }
+      if (finalItemsList.length === 0) throw new Error("ต้องมีรายการอุปกรณ์อย่างน้อย 1 รายการค่ะ");
 
-      setStatus("กำลังประมวลผลไฟล์รูปภาพ...");
+      if (!isSilently) setStatus("กำลังประมวลผลไฟล์รูปภาพ...");
       const cardImgFile = document.getElementById('cardImg').files[0];
-      let cardImgBase64 = null;
-      if (cardImgFile) {
-        cardImgBase64 = await fileToBase64(cardImgFile);
-      }
+      let cardImgBase64 = cardImgFile ? await fileToBase64(cardImgFile) : null;
 
       const payload = {
-        lineUserId: lineUserId, cardNumber: cardNumberVal, title: getActualValue(document.getElementById('title')),
-        firstName: firstNameVal, lastName: lastNameVal, email: document.getElementById('email').value.trim(),
+        lineUserId: lineUserId, mode: currentMode, cardNumber: cardNumberVal, 
+        title: getActualValue(document.getElementById('title')), firstName: firstNameVal, 
+        lastName: document.getElementById('lastName').value.trim(), email: document.getElementById('email').value.trim(),
         company: document.getElementById('company').value.trim(), role: document.getElementById('role').value.trim(),
         phone: "'" + phoneVal, cardImgBase64: cardImgBase64, existingCardImgUrl: existingCardImgUrl, 
-        itemsRaw: finalItemsList, 
-        pdpaAccepted: document.getElementById('pdpa').checked
+        itemsRaw: finalItemsList, pdpaAccepted: document.getElementById('pdpa').checked
       };
 
-      const payloadStr = JSON.stringify(payload);
-      if (payloadStr.length > 15 * 1024 * 1024) throw new Error(`ขนาดไฟล์รูปภาพใหญ่เกินไป กรุณาเลือกรูปที่มีขนาดเล็กลง`);
-
-      setStatus("กำลังส่งข้อมูล...");
-      submitBtn.innerText = "กำลังบันทึกค่า...";
+      if (!isSilently) { setStatus("กำลังส่งข้อมูล..."); submitBtn.innerText = "กำลังบันทึกค่า..."; }
       
-      const res = await fetchWithTimeout(GAS_WEB_APP_URL, { method: 'POST', body: payloadStr, redirect: 'follow' }, FETCH_TIMEOUT_MS);
+      const res = await fetchWithTimeout(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' }, FETCH_TIMEOUT_MS);
       if (!res.ok) throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด`);
-      const data = await res.json(); 
+      const data = await res.json();
 
       if (data.status === "success") {
-        setStatus(""); alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
-        location.reload();
+        if (!isSilently) alert("บันทึกข้อมูลเรียบร้อยแล้วค่ะ!");
+        // โหลดข้อมูลในโหมดเดิมกลับมาเพื่อรีเฟรชหน้า
+        await fetchUserData();
       } else { throw new Error(data.message || "ไม่ทราบสาเหตุ"); }
 
     } catch (err) {
-      console.error(err);
-      let userMsg = err.message || err.toString();
-      if (err.name === 'AbortError') userMsg = "หมดเวลาเชื่อมต่อ กรุณาลองใหม่อีกครั้ง";
-      setStatus(""); alert("เกิดข้อผิดพลาด: \n" + userMsg);
+      alert("เกิดข้อผิดพลาด: \n" + err.message);
+      setStatus("");
     } finally {
       submitBtn.disabled = false;
       submitBtn.innerText = "บันทึกข้อมูลการเปลี่ยนแปลง";
     }
-  });
+  }
 </script>
 
 </body>
