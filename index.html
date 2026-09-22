@@ -54,9 +54,9 @@
     .qr-container { text-align: center; margin-top: 15px; margin-bottom: 15px; display: none; }
     .qr-container img { width: 150px; height: 150px; border: 1px solid #ddd; padding: 8px; border-radius: 8px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 
-    #customModal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+    .modal-bg { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
     .modal-content { background-color: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center; }
-    .modal-input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; margin: 15px 0; text-transform: uppercase; text-align: center; font-weight: bold; }
+    .modal-input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; margin: 15px 0; text-align: center; font-weight: bold; }
     .modal-btns { display: flex; gap: 10px; }
     .modal-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
     .modal-btn-confirm { background-color: #28a745; color: white; }
@@ -193,7 +193,8 @@
   </form>
 </div>
 
-<div id="customModal">
+<!-- Modal 1: ยืนยันหมายเลขบัตรก่อนบันทึก -->
+<div id="customModal" class="modal-bg">
   <div class="modal-content">
     <h3 style="color: #003366; margin-top: 0;">🔒 ยืนยันหมายเลขบัตร</h3>
     <p style="font-size: 13px; color: #555; line-height: 1.4;">กรุณาดูหน้าบัตรจริงของท่าน แล้วพิมพ์หมายเลขบัตรใหม่อีกครั้งเพื่อยืนยัน</p>
@@ -202,6 +203,20 @@
     <div class="modal-btns">
       <button type="button" id="modalConfirmBtn" class="modal-btn modal-btn-confirm" onclick="confirmModalSubmit()" disabled>ยืนยันบันทึก</button>
       <button type="button" class="modal-btn modal-btn-cancel" onclick="closeCustomModal()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 2: ยืนยันเปลี่ยนผู้ช่วยเหลือ / โอนสิทธิ์ -->
+<div id="transferModal" class="modal-bg">
+  <div class="modal-content">
+    <h3 id="transferModalTitle" style="color: #003366; margin-top: 0;">🔄 ยืนยันสิทธิ์ข้อมูล</h3>
+    <p id="transferModalDesc" style="font-size: 13px; color: #555; line-height: 1.5;"></p>
+    <input type="tel" id="transferPhoneInput" class="modal-input" placeholder="กรอกเบอร์โทรศัพท์ 10 หลัก" maxlength="10">
+    <div id="transferModalError" style="font-size: 12px; color: #dc3545; font-weight: bold; margin-bottom: 15px; min-height: 18px;"></div>
+    <div class="modal-btns">
+      <button type="button" class="modal-btn modal-btn-confirm" onclick="submitTransferAction()">ยืนยันเปลี่ยนสิทธิ์</button>
+      <button type="button" class="modal-btn modal-btn-cancel" onclick="closeTransferModal()">ยกเลิก</button>
     </div>
   </div>
 </div>
@@ -215,6 +230,7 @@
   let originalUserData = {}; 
   let currentMode = 'self'; 
   let targetVipCard = '';
+  let pendingTransferAction = ''; // 'transferDelegator' หรือ 'claimOwnership'
   const invalidFields = new Set();
   
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec";
@@ -425,6 +441,18 @@
         return;
       }
 
+      // กรณีพบว่าเลขบัตรนี้มีเลขาคนอื่นดูแลอยู่แล้ว
+      if (data.status === "conflictOtherLine") {
+        searchMsg.innerText = "";
+        const u = data.userData;
+        openTransferModal(
+          'transferDelegator',
+          '🔄 พบผู้ช่วยเหลือเดิมในระบบ',
+          `หมายเลขบัตร <b>${targetVipCard}</b> (${u.title}${u.firstName} ${u.lastName}) มีอยู่ในระบบแล้วโดยผู้ช่วยเหลือท่านอื่น<br><br>หากท่านต้องการ <b>"รับช่วงดูแลแทน"</b> กรุณายืนยันเบอร์โทรศัพท์ของผู้ลงทะเบียนให้ถูกต้อง:`
+        );
+        return;
+      }
+
       document.getElementById('modeBadgeContainer').innerHTML = `<span class="mode-badge">โหมด: ทำรายการแทนบุคคลอื่น</span>`;
       showScreen('mainFormScreen');
 
@@ -549,6 +577,58 @@
       document.getElementById('cardNumberDisplay').innerText = targetVipCard;
       document.getElementById('cardNumber').classList.remove('mask-text');
       document.getElementById('cardNumber').disabled = true; 
+    }
+  }
+
+  function openTransferModal(actionType, title, descHtml) {
+    pendingTransferAction = actionType;
+    document.getElementById('transferModalTitle').innerText = title;
+    document.getElementById('transferModalDesc').innerHTML = descHtml;
+    document.getElementById('transferPhoneInput').value = '';
+    document.getElementById('transferModalError').innerText = '';
+    document.getElementById('transferModal').style.display = 'flex';
+  }
+
+  function closeTransferModal() {
+    document.getElementById('transferModal').style.display = 'none';
+    pendingTransferAction = '';
+  }
+
+  async function submitTransferAction() {
+    const inputPhone = document.getElementById('transferPhoneInput').value.trim();
+    const errDiv = document.getElementById('transferModalError');
+    
+    if (!/^0[689]\d{8}$/.test(inputPhone)) {
+      errDiv.innerText = '❌ กรุณากรอกเบอร์โทรศัพท์ 10 หลักให้ถูกต้อง';
+      return;
+    }
+
+    errDiv.innerText = '⏳ กำลังยืนยันข้อมูล...';
+    errDiv.style.color = '#003366';
+
+    try {
+      const payload = {
+        action: pendingTransferAction,
+        lineUserId: lineUserId,
+        vipCard: targetVipCard,
+        verifyPhone: inputPhone
+      };
+
+      const res = await fetchWithTimeout(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' }, FETCH_TIMEOUT_MS);
+      const data = await res.json();
+
+      if (data.status === 'success') {
+        alert(data.message);
+        closeTransferModal();
+        if (currentMode === 'delegated') searchVipRegistration();
+        else fetchUserData();
+      } else {
+        errDiv.innerText = '❌ ' + data.message;
+        errDiv.style.color = '#dc3545';
+      }
+    } catch (err) {
+      errDiv.innerText = 'เกิดข้อผิดพลาดในการส่งข้อมูล';
+      errDiv.style.color = '#dc3545';
     }
   }
 
