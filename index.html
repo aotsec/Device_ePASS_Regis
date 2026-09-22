@@ -441,7 +441,6 @@
         return;
       }
 
-      // กรณีพบว่าเลขบัตรนี้มีเลขาคนอื่นดูแลอยู่แล้ว (ซ่อนชื่อแบบ Masking)
       if (data.status === "conflictOtherLine") {
         searchMsg.innerText = "";
         const u = data.userData;
@@ -762,15 +761,46 @@
     return selectElement.value;
   }
 
+  // --- Dynamic Dropdown: ประเภทอุปกรณ์ ➔ ยี่ห้อ ---
+  function updateBrandDropdown(typeSelect) {
+    const typeVal = typeSelect.value;
+    const block = typeSelect.closest('.newItemBlock');
+    const brandSelect = block.querySelector('.newItem-brand');
+    const modelSelect = block.querySelector('.newItem-model');
+
+    brandSelect.innerHTML = '<option value="">-- เลือกรุ่น/ยี่ห้อ --</option>';
+    modelSelect.innerHTML = '<option value="">-- กรุณาเลือกรุ่น/ยี่ห้อก่อน --</option>';
+
+    let nextSiblingBrand = brandSelect.nextElementSibling;
+    if (nextSiblingBrand && nextSiblingBrand.classList.contains('other-input')) nextSiblingBrand.remove();
+    let nextSiblingModel = modelSelect.nextElementSibling;
+    if (nextSiblingModel && nextSiblingModel.classList.contains('other-input')) nextSiblingModel.remove();
+
+    if (configData.deviceBrandModels && configData.deviceBrandModels[typeVal]) {
+      const brandsObj = configData.deviceBrandModels[typeVal];
+      Object.keys(brandsObj).forEach(brand => {
+        brandSelect.innerHTML += `<option value="${brand}">${brand}</option>`;
+      });
+    }
+    brandSelect.innerHTML += `<option value="อื่นๆ">อื่นๆ (พิมพ์ระบุเอง)</option>`;
+  }
+
+  // --- Dynamic Dropdown: ยี่ห้อ ➔ รุ่น ---
   function updateModelDropdown(brandSelect) {
     const brandVal = brandSelect.value;
     const block = brandSelect.closest('.newItemBlock');
+    const typeSelect = block.querySelector('.newItem-type');
+    const typeVal = typeSelect.value;
     const modelSelect = block.querySelector('.newItem-model');
+
     modelSelect.innerHTML = '<option value="">-- เลือกรุ่น --</option>';
     let nextSibling = modelSelect.nextElementSibling;
     if (nextSibling && nextSibling.classList.contains('other-input')) nextSibling.remove();
-    if (configData.brandModels && configData.brandModels[brandVal]) {
-      configData.brandModels[brandVal].forEach(m => modelSelect.innerHTML += `<option value="${m}">${m}</option>`);
+
+    if (configData.deviceBrandModels && configData.deviceBrandModels[typeVal] && configData.deviceBrandModels[typeVal][brandVal]) {
+      configData.deviceBrandModels[typeVal][brandVal].forEach(m => {
+        modelSelect.innerHTML += `<option value="${m}">${m}</option>`;
+      });
     }
     modelSelect.innerHTML += `<option value="อื่นๆ">อื่นๆ (พิมพ์ระบุเอง)</option>`;
   }
@@ -795,14 +825,13 @@
     div.style.background = '#f0fdf4';
     
     let typeOpts = (configData.deviceTypes || []).map(t => `<option value="${t}">${t}</option>`).join('');
-    let brandOpts = Object.keys(configData.brandModels || {}).map(b => `<option value="${b}">${b}</option>`).join('');
     let colorOpts = (configData.colors || []).map(c => `<option value="${c}">${c}</option>`).join('');
 
     div.innerHTML = `
       <h4 style="margin-top:0; color:#166534;">เพิ่มอุปกรณ์ใหม่ <button type="button" class="btn-remove" onclick="this.closest('.item-block').remove(); updateAddButton();">🗑️ ยกเลิก</button></h4>
-      <div class="form-group"><label>ประเภทอุปกรณ์ *</label><select class="newItem-type" required onchange="handleDropdownChange(this)"><option value="">-- เลือกประเภท --</option>${typeOpts}</select></div>
-      <div class="form-group"><label>ยี่ห้อ *</label><select class="newItem-brand" required onchange="updateModelDropdown(this); handleDropdownChange(this);"><option value="">-- เลือกยี่ห้อ --</option>${brandOpts}<option value="อื่นๆ">อื่นๆ (พิมพ์ระบุเอง)</option></select></div>
-      <div class="form-group"><label>รุ่น / โมเดล *</label><select class="newItem-model" required onchange="handleDropdownChange(this)"><option value="">-- กรุณาเลือกยี่ห้อก่อน --</option></select></div>
+      <div class="form-group"><label>ประเภทอุปกรณ์ *</label><select class="newItem-type" required onchange="updateBrandDropdown(this); handleDropdownChange(this);"><option value="">-- เลือกประเภท --</option>${typeOpts}</select></div>
+      <div class="form-group"><label>ยี่ห้อ *</label><select class="newItem-brand" required onchange="updateModelDropdown(this); handleDropdownChange(this);"><option value="">-- กรุณาเลือกประเภทก่อน --</option><option value="อื่นๆ">อื่นๆ (พิมพ์ระบุเอง)</option></select></div>
+      <div class="form-group"><label>รุ่น / โมเดล *</label><select class="newItem-model" required onchange="handleDropdownChange(this)"><option value="">-- กรุณาเลือกรุ่น/ยี่ห้อก่อน --</option></select></div>
       <div class="form-group"><label>S/N หรือ IMEI (เลขท้าย 5 หลัก) *</label><input type="text" class="newItem-serial" required placeholder="กรอก S/N หรือ IMEI" oninput="formatSerialInput(this)"><div class="hint-text">ระบบจะแสดงผลและบันทึกเฉพาะเลขท้าย 5 หลักในรูปแบบ ***XXXXX อัตโนมัติ</div></div>
       <div class="form-group"><label>สี *</label><select class="newItem-color" required onchange="handleDropdownChange(this)"><option value="">-- เลือกสี --</option>${colorOpts}</select></div>
     `;
