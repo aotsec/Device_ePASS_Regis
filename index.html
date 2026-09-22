@@ -24,6 +24,12 @@
     .edit-field-btn { position: absolute; right: 10px; top: 32px; background: none; border: none; cursor: pointer; font-size: 16px; color: #0056b3; padding: 2px 5px; display: none; }
     .edit-field-btn:hover { color: #003366; transform: scale(1.1); }
 
+    /* สไตล์เฉพาะส่วนเลขบัตรตรงกลางขนาด 1.5 เท่า */
+    .card-number-center-box { text-align: center; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-bottom: 20px; position: relative; }
+    .card-number-center-box label { font-size: 14px; color: #64748b; margin-bottom: 5px; }
+    .card-number-display { font-size: 21px; font-weight: bold; color: #0f172a; letter-spacing: 1px; }
+    .card-number-input-wrap { display: none; } /* ซ่อนช่อง input เดิมตอนอ่านอย่างเดียว */
+
     .item-block { border: 1px dashed #0056b3; padding: 15px; border-radius: 8px; background: #f0f7ff; margin-bottom: 15px; position: relative; }
     .btn { background-color: #0056b3; color: white; padding: 12px; border: none; border-radius: 6px; width: 100%; font-size: 16px; cursor: pointer; font-weight: bold; }
     .btn:disabled { background-color: #cccccc; cursor: not-allowed; }
@@ -32,7 +38,7 @@
     .btn-edit { background-color: #ffc107; color: #333; margin-bottom: 15px; }
     .btn-back { background-color: #6c757d; margin-bottom: 20px; font-size: 14px; padding: 8px; }
     
-    .pdpa-box { font-size: 13px; color: #555; background: #eee; padding: 10px; border-radius: 6px; margin-bottom: 15px; }
+    .pdpa-box { font-size: 13px; color: #555; background: #eee; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: none; }
     .status-msg { text-align:center; font-size:13px; color:#003366; margin-top:8px; min-height:18px; font-weight: bold; }
     .other-input { width: 100%; padding: 10px; border: 1px dashed #ff9900; border-radius: 6px; margin-top: 8px; box-sizing: border-box; font-size: 14px; background-color: #fff9f0; }
     .status-badge { padding: 8px 12px; border-radius: 6px; font-weight: bold; text-align: center; margin-bottom: 20px; }
@@ -44,7 +50,7 @@
     .mode-badge { background: #17a2b8; color: white; font-size: 12px; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 15px; font-weight: normal; }
     .error-text { font-size: 12px; margin-top: 6px; display: none; font-weight: bold; }
     
-    .qr-container { text-align: center; margin-top: 10px; margin-bottom: 15px; display: none; }
+    .qr-container { text-align: center; margin-top: 15px; margin-bottom: 15px; display: none; }
     .qr-container img { width: 150px; height: 150px; border: 1px solid #ddd; padding: 8px; border-radius: 8px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 
     /* Custom Modal Popup CSS */
@@ -102,62 +108,66 @@
       <div id="cardImgLinkBox" class="file-link-box"></div>
     </div>
     
-    <div class="form-group">
+    <!-- ส่วนหมายเลขบัตรตรงกลางขนาด 1.5 เท่า -->
+    <div id="cardNumberCenterContainer" class="card-number-center-box">
+      <label>หมายเลขบัตรอนุญาตบุคคล</label>
+      <div id="cardNumberDisplay" class="card-number-display">-</div>
+      <button type="button" class="edit-field-btn" style="top: 15px; display: inline-block;" onclick="unlockCardNumber()" title="แก้ไขข้อมูล">✏️</button>
+      <!-- ส่วนแสดง QR Code ตรงกลางใต้เลขบัตร -->
+      <div id="cardQrContainer" class="qr-container">
+        <img id="cardQrImg" src="" alt="QR Code หมายเลขบัตร">
+        <div class="hint-text" style="margin-top: 5px; font-weight: bold; color: #155724;">QR Code ประจำหมายเลขบัตร (สถานะอนุมัติ)</div>
+      </div>
+    </div>
+
+    <div class="form-group card-number-input-wrap" id="cardNumberInputWrap">
       <label>หมายเลขบัตรอนุญาตบุคคล *</label>
-      <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" disabled oninput="this.value = this.value.toUpperCase()" onblur="validateDuplicate('cardNumber')">
-      <button type="button" class="edit-field-btn" onclick="unlockField('cardNumber', this)" title="แก้ไขข้อมูล">✏️</button>
+      <input type="text" id="cardNumber" required placeholder="เช่น SUV/17330/00807/68" oninput="this.value = this.value.toUpperCase()" onblur="validateDuplicate('cardNumber')">
       <div id="err-cardNumber" class="error-text"></div>
     </div>
 
-    <!-- ส่วนแสดง QR Code หมายเลขบัตร (แสดงเฉพาะเมื่อสถานะเป็น "อนุมัติ" แล้วเท่านั้น) -->
-    <div id="cardQrContainer" class="qr-container">
-      <img id="cardQrImg" src="" alt="QR Code หมายเลขบัตร">
-      <div class="hint-text" style="margin-top: 5px; font-weight: bold; color: #155724;">QR Code ประจำหมายเลขบัตร (สถานะอนุมัติ)</div>
+    <!-- ส่วนแสดงข้อมูลแบบย่อ (ชื่อ, บริษัท/หน้าที่, อีเมล, โทร) -->
+    <div id="readOnlySummaryBox" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px; font-size: 14px; color: #334155; line-height: 1.6; position: relative;">
+      <button type="button" class="edit-field-btn" style="top: 10px; display: inline-block;" onclick="enableEditing()" title="แก้ไขข้อมูลทั้งหมด">✏️</button>
+      <div id="summaryFullName" style="font-weight: bold; color: #003366; margin-bottom: 5px;">ข้อมูลของ -</div>
+      <div><strong>บริษัท / หน่วยงาน :</strong> <span id="summaryCompany">-</span> &nbsp;&nbsp;|&nbsp;&nbsp; <strong>หน้าที่ / สังกัด :</strong> <span id="summaryRole">-</span></div>
+      <div><strong>อีเมล :</strong> <span id="summaryEmail">-</span></div>
+      <div><strong>โทร :</strong> <span id="summaryPhone">-</span></div>
     </div>
 
-    <div class="form-group">
-      <label>คำนำหน้าชื่อ *</label>
-      <select id="title" required disabled onchange="handleDropdownChange(this)"><option value="">-- กำลังโหลดรายการ --</option></select>
-      <button type="button" class="edit-field-btn" onclick="unlockField('title', this)" title="แก้ไขข้อมูล">✏️</button>
-    </div>
-
-    <div class="form-group">
-      <label>ชื่อ * (ไม่มีคำนำหน้านาม และห้ามเว้นวรรค)</label>
-      <input type="text" id="firstName" required placeholder="กรอกเฉพาะชื่อจริง" disabled onblur="validateDuplicate('fullName')">
-      <button type="button" class="edit-field-btn" onclick="unlockField('firstName', this)" title="แก้ไขข้อมูล">✏️</button>
-    </div>
-
-    <div class="form-group">
-      <label>นามสกุล *</label>
-      <input type="text" id="lastName" required placeholder="กรอกเฉพาะนามสกุล" disabled onblur="validateDuplicate('fullName')">
-      <button type="button" class="edit-field-btn" onclick="unlockField('lastName', this)" title="แก้ไขข้อมูล">✏️</button>
-      <div id="err-fullName" class="error-text"></div>
-    </div>
-
-    <div class="form-group">
-      <label>อีเมล (E-Mail) *</label>
-      <input type="email" id="email" required placeholder="example@email.com" disabled onblur="validateDuplicate('email')">
-      <button type="button" class="edit-field-btn" onclick="unlockField('email', this)" title="แก้ไขข้อมูล">✏️</button>
-      <div id="err-email" class="error-text"></div>
-    </div>
-
-    <div class="form-group">
-      <label>บริษัท *</label>
-      <input type="text" id="company" required placeholder="ระบุชื่อบริษัท/หน่วยงาน" disabled>
-      <button type="button" class="edit-field-btn" onclick="unlockField('company', this)" title="แก้ไขข้อมูล">✏️</button>
-    </div>
-
-    <div class="form-group">
-      <label>หน้าที่ หรือ สังกัด *</label>
-      <input type="text" id="role" required placeholder="ระบุหน้าที่ หรือสังกัด" disabled>
-      <button type="button" class="edit-field-btn" onclick="unlockField('role', this)" title="แก้ไขข้อมูล">✏️</button>
-    </div>
-
-    <div class="form-group">
-      <label>หมายเลขโทรศัพท์ (10 หลัก) *</label>
-      <input type="tel" id="phone" pattern="[0-9]{10}" maxlength="10" required placeholder="08XXXXXXXX" disabled onblur="validateDuplicate('phone')">
-      <button type="button" class="edit-field-btn" onclick="unlockField('phone', this)" title="แก้ไขข้อมูล">✏️</button>
-      <div id="err-phone" class="error-text"></div>
+    <!-- ช่องฟอร์มเดิม (ซ่อนไว้ตอนอ่านอย่างเดียว จะแสดงเมื่อกดปุ่มแก้ไข) -->
+    <div id="editableFieldsContainer" style="display: none;">
+      <div class="form-group">
+        <label>คำนำหน้าชื่อ *</label>
+        <select id="title" required onchange="handleDropdownChange(this)"><option value="">-- กำลังโหลดรายการ --</option></select>
+      </div>
+      <div class="form-group">
+        <label>ชื่อ * (ไม่มีคำนำหน้านาม และห้ามเว้นวรรค)</label>
+        <input type="text" id="firstName" required placeholder="กรอกเฉพาะชื่อจริง" onblur="validateDuplicate('fullName')">
+      </div>
+      <div class="form-group">
+        <label>นามสกุล *</label>
+        <input type="text" id="lastName" required placeholder="กรอกเฉพาะนามสกุล" onblur="validateDuplicate('fullName')">
+        <div id="err-fullName" class="error-text"></div>
+      </div>
+      <div class="form-group">
+        <label>อีเมล (E-Mail) *</label>
+        <input type="email" id="email" required placeholder="example@email.com" onblur="validateDuplicate('email')">
+        <div id="err-email" class="error-text"></div>
+      </div>
+      <div class="form-group">
+        <label>บริษัท *</label>
+        <input type="text" id="company" required placeholder="ระบุชื่อบริษัท/หน่วยงาน">
+      </div>
+      <div class="form-group">
+        <label>หน้าที่ หรือ สังกัด *</label>
+        <input type="text" id="role" required placeholder="ระบุหน้าที่ หรือสังกัด">
+      </div>
+      <div class="form-group">
+        <label>หมายเลขโทรศัพท์ (10 หลัก) *</label>
+        <input type="tel" id="phone" pattern="[0-9]{10}" maxlength="10" required placeholder="08XXXXXXXX" onblur="validateDuplicate('phone')">
+        <div id="err-phone" class="error-text"></div>
+      </div>
     </div>
 
     <hr style="margin: 20px 0;">
@@ -165,8 +175,9 @@
     <div id="itemsContainer"></div>
     <button type="button" id="btnAddItem" class="btn btn-add" style="display:none;" onclick="addNewItemBlock()">+ เพิ่มรายการอุปกรณ์ใหม่</button>
 
-    <div class="pdpa-box">
-      <input type="checkbox" id="pdpa" required style="width: auto;" disabled>
+    <!-- ส่วน PDPA แสดงเฉพาะตอนแก้ไข/ลงทะเบียนใหม่ -->
+    <div class="pdpa-box" id="pdpaBoxContainer">
+      <input type="checkbox" id="pdpa" required style="width: auto;">
       <label for="pdpa" style="display:inline; font-weight:normal;">ข้าพเจ้ายินยอมให้ใช้ข้อมูลเพื่อการตรวจสอบตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)</label>
     </div>
 
@@ -232,10 +243,8 @@
     const qrImg = document.getElementById('cardQrImg');
     const cleanVal = (cardVal || '').trim();
     
-    // แสดง QR เฉพาะเมื่อสถานะเป็น "อนุมัติ" (หรือ "อนุมัติแล้ว") และเลขบัตรถูกต้อง
     const normalizedStatus = (status === 'อนุมัติแล้ว') ? 'อนุมัติ' : status;
     if (normalizedStatus === 'อนุมัติ' && isValidCardIdFormat(cleanVal)) {
-      // ใช้ API สร้าง QR ที่เสถียรและแสดงภาพได้ทันที 100%
       qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(cleanVal)}`;
       qrContainer.style.display = 'block';
     } else {
@@ -276,20 +285,12 @@
     });
   }
 
-  function unlockField(fieldId, btnElem) {
-    const field = document.getElementById(fieldId);
-    if (!field) return;
-    field.disabled = false;
-    field.style.backgroundColor = '#fff';
-    field.style.border = '1px solid #ccc';
-    field.style.padding = '10px 35px 10px 10px';
-    btnElem.style.display = 'none';
-    
-    // หากปลดล็อกแก้ไขหมายเลขบัตร ให้ซ่อน QR ทันทีเพราะกำลังอยู่ในสถานะแก้ไข/รอพิจารณาใหม่
-    if (fieldId === 'cardNumber') {
-      document.getElementById('cardQrContainer').style.display = 'none';
-    }
-
+  function unlockCardNumber() {
+    if (currentMode === 'delegated') return; // โหมดทำแทน ล็อกเลขบัตรผู้บังคับบัญชา
+    document.getElementById('cardNumberCenterContainer').style.display = 'none';
+    document.getElementById('cardNumberInputWrap').style.display = 'block';
+    document.getElementById('cardNumber').disabled = false;
+    document.getElementById('cardQrContainer').style.display = 'none';
     document.getElementById('btnSubmit').style.display = 'block';
   }
 
@@ -392,6 +393,8 @@
         const user = data.userData;
         originalUserData = { ...user };
         
+        // เซ็ตข้อมูลลงฟอร์มและกล่องสรุป
+        document.getElementById('cardNumberDisplay').innerText = user.cardNumber || '-';
         document.getElementById('cardNumber').value = user.cardNumber || '';
         setValueWithOther(document.getElementById('title'), user.title);
         document.getElementById('firstName').value = user.firstName || '';
@@ -402,13 +405,18 @@
         if (user.phone) document.getElementById('phone').value = String(user.phone).replace(/^'/, '');
         document.getElementById('pdpa').checked = (user.pdpa === "ยอมรับ");
         
+        // อัปเดตกล่องสรุปย่อ
+        document.getElementById('summaryFullName').innerText = `ข้อมูลของ ${user.title || ''}${user.firstName || ''} ${user.lastName || ''}`;
+        document.getElementById('summaryCompany').innerText = user.company || '-';
+        document.getElementById('summaryRole').innerText = user.role || '-';
+        document.getElementById('summaryEmail').innerText = user.email || '-';
+        document.getElementById('summaryPhone').innerText = user.phone ? String(user.phone).replace(/^'/, '') : '-';
+
         existingCardImgUrl = user.cardImgUrl || '-';
         const linkBox = document.getElementById('cardImgLinkBox');
         linkBox.innerHTML = existingCardImgUrl !== '-' ? `📎 รูปหน้าบัตรที่แนบไว้: <a href="${existingCardImgUrl}" target="_blank" style="color:#0056b3; font-weight:bold;">คลิกเพื่อดูรูปภาพ</a>` : `<span style="color:#888;">- ยังไม่มีรูปภาพ -</span>`;
 
         renderStatusBadge(user.status);
-        
-        // ตรวจสอบและแสดง QR Code เฉพาะเมื่อสถานะเป็น "อนุมัติ"
         checkAndRenderCardQR(user.cardNumber, user.status);
         
         const ePassContainer = document.getElementById('ePassContainer');
@@ -441,6 +449,7 @@
         const user = data.userData;
         originalUserData = { ...user };
         
+        document.getElementById('cardNumberDisplay').innerText = user.cardNumber || '-';
         document.getElementById('cardNumber').value = user.cardNumber || '';
         setValueWithOther(document.getElementById('title'), user.title);
         document.getElementById('firstName').value = user.firstName || '';
@@ -451,13 +460,17 @@
         if (user.phone) document.getElementById('phone').value = String(user.phone).replace(/^'/, '');
         document.getElementById('pdpa').checked = (user.pdpa === "ยอมรับ");
         
+        document.getElementById('summaryFullName').innerText = `ข้อมูลของ ${user.title || ''}${user.firstName || ''} ${user.lastName || ''}`;
+        document.getElementById('summaryCompany').innerText = user.company || '-';
+        document.getElementById('summaryRole').innerText = user.role || '-';
+        document.getElementById('summaryEmail').innerText = user.email || '-';
+        document.getElementById('summaryPhone').innerText = user.phone ? String(user.phone).replace(/^'/, '') : '-';
+
         existingCardImgUrl = user.cardImgUrl || '-';
         const linkBox = document.getElementById('cardImgLinkBox');
         linkBox.innerHTML = existingCardImgUrl !== '-' ? `📎 รูปหน้าบัตรที่แนบไว้: <a href="${existingCardImgUrl}" target="_blank" style="color:#0056b3; font-weight:bold;">คลิกเพื่อดูรูปภาพ</a>` : `<span style="color:#888;">- ยังไม่มีรูปภาพ -</span>`;
 
         renderStatusBadge(user.status);
-        
-        // ตรวจสอบและแสดง QR Code เฉพาะเมื่อสถานะเป็น "อนุมัติ"
         checkAndRenderCardQR(user.cardNumber, user.status);
         
         const ePassContainer = document.getElementById('ePassContainer');
@@ -491,6 +504,7 @@
     
     if (currentMode === 'delegated' && targetVipCard) {
       document.getElementById('cardNumber').value = targetVipCard;
+      document.getElementById('cardNumberDisplay').innerText = targetVipCard;
       document.getElementById('cardNumber').disabled = true; 
     }
   }
@@ -514,15 +528,13 @@
       container.appendChild(div);
     });
     
-    const inputs = document.querySelectorAll('#regForm input, #regForm select');
-    inputs.forEach(input => {
-      input.disabled = true;
-      input.style.backgroundColor = 'transparent';
-      input.style.border = 'none';
-      input.style.paddingLeft = '0';
-    });
+    // โหมดอ่านอย่างเดียว: ซ่อนฟอร์มเต็ม แสดงกล่องสรุปย่อและกล่องเลขบัตรตรงกลาง
+    document.getElementById('readOnlySummaryBox').style.display = 'block';
+    document.getElementById('editableFieldsContainer').style.display = 'none';
+    document.getElementById('cardNumberCenterContainer').style.display = 'block';
+    document.getElementById('cardNumberInputWrap').style.display = 'none';
+    document.getElementById('pdpaBoxContainer').style.display = 'none';
 
-    document.querySelectorAll('.edit-field-btn').forEach(btn => btn.style.display = 'inline-block');
     document.getElementById('btnAddItem').style.display = 'block';
     document.getElementById('btnEdit').style.display = 'none';
     document.getElementById('btnSubmit').style.display = 'none';
@@ -536,6 +548,13 @@
   }
 
   function enableEditing() {
+    // โหมดแก้ไข: ซ่อนกล่องสรุปย่อ แสดงฟอร์มกรอกข้อมูลเต็มรูปแบบและเปิด PDPA
+    document.getElementById('readOnlySummaryBox').style.display = 'none';
+    document.getElementById('editableFieldsContainer').style.display = 'block';
+    document.getElementById('cardNumberCenterContainer').style.display = 'none';
+    document.getElementById('cardNumberInputWrap').style.display = 'block';
+    document.getElementById('pdpaBoxContainer').style.display = 'block';
+
     const inputs = document.querySelectorAll('#regForm input, #regForm select');
     inputs.forEach(input => {
       if (input.id === 'cardNumber' && currentMode === 'delegated') return;
@@ -544,11 +563,10 @@
       input.style.border = '1px solid #ccc';
       input.style.padding = '10px 35px 10px 10px';
     });
-    document.querySelectorAll('.edit-field-btn').forEach(btn => btn.style.display = 'none');
+    
     document.getElementById('btnEdit').style.display = 'none';
     document.getElementById('btnSubmit').style.display = 'block';
     
-    // ซ่อน QR Code ทันทีเมื่อกดแก้ไข (เพราะสถานะกำลังจะเปลี่ยนเป็นรอดำเนินการใหม่)
     document.getElementById('cardQrContainer').style.display = 'none';
 
     const container = document.getElementById('itemsContainer');
