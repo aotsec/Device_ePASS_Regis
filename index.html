@@ -28,7 +28,7 @@
     .card-number-center-box { text-align: center; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-bottom: 20px; position: relative; }
     .card-number-center-box label { font-size: 14px; color: #64748b; margin-bottom: 5px; }
     .card-number-display { font-size: 21px; font-weight: bold; color: #0f172a; letter-spacing: 1px; }
-    .card-number-input-wrap { display: none; } /* ซ่อนช่อง input เดิมตอนอ่านอย่างเดียว */
+    .card-number-input-wrap { display: none; }
 
     .item-block { border: 1px dashed #0056b3; padding: 15px; border-radius: 8px; background: #f0f7ff; margin-bottom: 15px; position: relative; }
     .btn { background-color: #0056b3; color: white; padding: 12px; border: none; border-radius: 6px; width: 100%; font-size: 16px; cursor: pointer; font-weight: bold; }
@@ -56,7 +56,7 @@
     /* Custom Modal Popup CSS */
     #customModal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
     .modal-content { background-color: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center; }
-    .modal-input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; margin: 15px 0; text-transform: uppercase; text-align: center; font-weight: bold; }
+    .modal-input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; margin: 15px 0; text-transform: uppercase; text-align: center; font-weight: bold; -webkit-text-security: disc; } /* ซ่อนตัวอักษรเป็นจุด */
     .modal-btns { display: flex; gap: 10px; }
     .modal-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
     .modal-btn-confirm { background-color: #28a745; color: white; }
@@ -126,7 +126,7 @@
       <div id="err-cardNumber" class="error-text"></div>
     </div>
 
-    <!-- ส่วนแสดงข้อมูลแบบย่อ (ชื่อ, บริษัท/หน้าที่, อีเมล, โทร) -->
+    <!-- ส่วนแสดงข้อมูลแบบย่อ -->
     <div id="readOnlySummaryBox" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px; font-size: 14px; color: #334155; line-height: 1.6; position: relative;">
       <button type="button" class="edit-field-btn" style="top: 10px; display: inline-block;" onclick="enableEditing()" title="แก้ไขข้อมูลทั้งหมด">✏️</button>
       <div id="summaryFullName" style="font-weight: bold; color: #003366; margin-bottom: 5px;">ข้อมูลของ -</div>
@@ -135,7 +135,7 @@
       <div><strong>โทร :</strong> <span id="summaryPhone">-</span></div>
     </div>
 
-    <!-- ช่องฟอร์มเดิม (ซ่อนไว้ตอนอ่านอย่างเดียว จะแสดงเมื่อกดปุ่มแก้ไข) -->
+    <!-- ช่องฟอร์มเดิม -->
     <div id="editableFieldsContainer" style="display: none;">
       <div class="form-group">
         <label>คำนำหน้าชื่อ *</label>
@@ -175,7 +175,7 @@
     <div id="itemsContainer"></div>
     <button type="button" id="btnAddItem" class="btn btn-add" style="display:none;" onclick="addNewItemBlock()">+ เพิ่มรายการอุปกรณ์ใหม่</button>
 
-    <!-- ส่วน PDPA แสดงเฉพาะตอนแก้ไข/ลงทะเบียนใหม่ -->
+    <!-- ส่วน PDPA -->
     <div class="pdpa-box" id="pdpaBoxContainer">
       <input type="checkbox" id="pdpa" required style="width: auto;">
       <label for="pdpa" style="display:inline; font-weight:normal;">ข้าพเจ้ายินยอมให้ใช้ข้อมูลเพื่อการตรวจสอบตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)</label>
@@ -187,11 +187,11 @@
   </form>
 </div>
 
-<!-- Custom Modal Popup สำหรับยืนยันเลขบัตร -->
+<!-- Custom Modal Popup สำหรับยืนยันเลขบัตร (ซ่อนตัวอักษรเป็นจุด) -->
 <div id="customModal">
   <div class="modal-content">
     <h3 style="color: #003366; margin-top: 0;">🔒 ยืนยันหมายเลขบัตร</h3>
-    <p style="font-size: 13px; color: #555; line-height: 1.4;">กรุณาดูหน้าบัตรจริงของท่าน แล้วพิมพ์หมายเลขบัตรใหม่อีกครั้งเพื่อยืนยัน (ห้ามคัดลอกและวาง)</p>
+    <p style="font-size: 13px; color: #555; line-height: 1.4;">กรุณาดูหน้าบัตรจริงของท่าน แล้วพิมพ์หมายเลขบัตรใหม่อีกครั้งเพื่อยืนยัน (ตัวอักษรจะถูกซ่อนเพื่อความปลอดภัย)</p>
     <input type="text" id="modalCardInput" class="modal-input" placeholder="พิมพ์เลขบัตรจากหน้าบัตร" oninput="this.value = this.value.toUpperCase(); checkModalMatch();" onpaste="return false;" oncopy="return false;" oncut="return false;">
     <div id="modalError" style="font-size: 12px; color: #dc3545; font-weight: bold; margin-bottom: 15px; min-height: 18px;"></div>
     <div class="modal-btns">
@@ -286,7 +286,7 @@
   }
 
   function unlockCardNumber() {
-    if (currentMode === 'delegated') return; // โหมดทำแทน ล็อกเลขบัตรผู้บังคับบัญชา
+    if (currentMode === 'delegated') return; 
     document.getElementById('cardNumberCenterContainer').style.display = 'none';
     document.getElementById('cardNumberInputWrap').style.display = 'block';
     document.getElementById('cardNumber').disabled = false;
@@ -393,7 +393,6 @@
         const user = data.userData;
         originalUserData = { ...user };
         
-        // เซ็ตข้อมูลลงฟอร์มและกล่องสรุป
         document.getElementById('cardNumberDisplay').innerText = user.cardNumber || '-';
         document.getElementById('cardNumber').value = user.cardNumber || '';
         setValueWithOther(document.getElementById('title'), user.title);
@@ -405,7 +404,6 @@
         if (user.phone) document.getElementById('phone').value = String(user.phone).replace(/^'/, '');
         document.getElementById('pdpa').checked = (user.pdpa === "ยอมรับ");
         
-        // อัปเดตกล่องสรุปย่อ
         document.getElementById('summaryFullName').innerText = `ข้อมูลของ ${user.title || ''}${user.firstName || ''} ${user.lastName || ''}`;
         document.getElementById('summaryCompany').innerText = user.company || '-';
         document.getElementById('summaryRole').innerText = user.role || '-';
@@ -419,8 +417,10 @@
         renderStatusBadge(user.status);
         checkAndRenderCardQR(user.cardNumber, user.status);
         
+        // ซ่อนปุ่ม ePASS ไว้ก่อน จนกว่าสถานะจะเป็น "อนุมัติ"
         const ePassContainer = document.getElementById('ePassContainer');
-        if (user.status === 'อนุมัติ' && user.ePassUrl && user.ePassUrl !== '-') {
+        const normalizedStatus = (user.status === 'อนุมัติแล้ว') ? 'อนุมัติ' : user.status;
+        if (normalizedStatus === 'อนุมัติ' && user.ePassUrl && user.ePassUrl !== '-') {
           ePassContainer.innerHTML = `<a href="${user.ePassUrl}" target="_blank" class="btn" style="background-color: #28a745; display: inline-block; text-decoration: none; padding: 12px 20px; box-sizing: border-box; width: 100%;">✅ ดูบัตร Device ePASS</a>`;
           ePassContainer.style.display = 'block';
         } else { ePassContainer.style.display = 'none'; }
@@ -473,8 +473,10 @@
         renderStatusBadge(user.status);
         checkAndRenderCardQR(user.cardNumber, user.status);
         
+        // ซ่อนปุ่ม ePASS ไว้ก่อน จนกว่าสถานะจะเป็น "อนุมัติ"
         const ePassContainer = document.getElementById('ePassContainer');
-        if (user.status === 'อนุมัติ' && user.ePassUrl && user.ePassUrl !== '-') {
+        const normalizedStatus = (user.status === 'อนุมัติแล้ว') ? 'อนุมัติ' : user.status;
+        if (normalizedStatus === 'อนุมัติ' && user.ePassUrl && user.ePassUrl !== '-') {
           ePassContainer.innerHTML = `<a href="${user.ePassUrl}" target="_blank" class="btn" style="background-color: #28a745; display: inline-block; text-decoration: none; padding: 12px 20px; box-sizing: border-box; width: 100%;">✅ ดูบัตร Device ePASS</a>`;
           ePassContainer.style.display = 'block';
         } else { ePassContainer.style.display = 'none'; }
@@ -528,7 +530,6 @@
       container.appendChild(div);
     });
     
-    // โหมดอ่านอย่างเดียว: ซ่อนฟอร์มเต็ม แสดงกล่องสรุปย่อและกล่องเลขบัตรตรงกลาง
     document.getElementById('readOnlySummaryBox').style.display = 'block';
     document.getElementById('editableFieldsContainer').style.display = 'none';
     document.getElementById('cardNumberCenterContainer').style.display = 'block';
@@ -548,7 +549,6 @@
   }
 
   function enableEditing() {
-    // โหมดแก้ไข: ซ่อนกล่องสรุปย่อ แสดงฟอร์มกรอกข้อมูลเต็มรูปแบบและเปิด PDPA
     document.getElementById('readOnlySummaryBox').style.display = 'none';
     document.getElementById('editableFieldsContainer').style.display = 'block';
     document.getElementById('cardNumberCenterContainer').style.display = 'none';
@@ -566,7 +566,6 @@
     
     document.getElementById('btnEdit').style.display = 'none';
     document.getElementById('btnSubmit').style.display = 'block';
-    
     document.getElementById('cardQrContainer').style.display = 'none';
 
     const container = document.getElementById('itemsContainer');
@@ -682,10 +681,19 @@
       alert("รูปแบบ 'หมายเลขบัตรอนุญาต' ไม่ถูกต้อง (เช่น บัตรชั่วคราวต้องลงท้ายด้วย D หรือ M)");
       return;
     }
-    document.getElementById('modalCardInput').value = '';
-    document.getElementById('modalError').innerText = '';
-    document.getElementById('modalConfirmBtn').disabled = true;
-    document.getElementById('customModal').style.display = 'flex';
+
+    // ตรวจสอบว่ามีการเปลี่ยนแปลงหมายเลขบัตรจากเดิมหรือไม่
+    const originalCard = (originalUserData.cardNumber || '').trim().toUpperCase();
+    if (isRegistered && cardNumberVal === originalCard) {
+      // ถ้าเลขบัตรเดิม ไม่ต้องขึ้น Modal ยืนยัน บันทึกต่อได้เลย
+      submitFormDataFinal(false);
+    } else {
+      // ถ้าเป็นรายการใหม่ หรือมีการเปลี่ยนแปลงเลขบัตร ให้ขึ้น Modal ยืนยัน (ซ่อนตัวอักษร)
+      document.getElementById('modalCardInput').value = '';
+      document.getElementById('modalError').innerText = '';
+      document.getElementById('modalConfirmBtn').disabled = true;
+      document.getElementById('customModal').style.display = 'flex';
+    }
   });
 
   function closeCustomModal() {
@@ -705,7 +713,7 @@
     }
 
     if (modalInput !== originalCard) {
-      errDiv.innerText = '❌ หมายเลขบัตรไม่ตรงกับครั้งแรก กรุณาดูจากหน้าบัตรจริง';
+      errDiv.innerText = '❌ หมายเลขบัตรไม่ถูกต้อง กรุณาตรวจสอบจากหน้าบัตรจริง';
       confirmBtn.disabled = true;
     } else {
       errDiv.innerText = '✅ หมายเลขบัตรถูกต้องตรงกัน';
