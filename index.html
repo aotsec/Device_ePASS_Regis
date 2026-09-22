@@ -230,7 +230,7 @@
   let originalUserData = {}; 
   let currentMode = 'self'; 
   let targetVipCard = '';
-  let pendingTransferAction = ''; // 'transferDelegator' หรือ 'claimOwnership'
+  let pendingTransferAction = '';
   const invalidFields = new Set();
   
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzBQMTMg3GUKXyXFvPluE-BK7ZFJ94B_jYoxPKF8KRN5FgocQ7amPAN0UX9cqIjSJcI/exec";
@@ -441,14 +441,16 @@
         return;
       }
 
-      // กรณีพบว่าเลขบัตรนี้มีเลขาคนอื่นดูแลอยู่แล้ว
+      // กรณีพบว่าเลขบัตรนี้มีเลขาคนอื่นดูแลอยู่แล้ว (ซ่อนชื่อแบบ Masking)
       if (data.status === "conflictOtherLine") {
         searchMsg.innerText = "";
         const u = data.userData;
+        const displayName = u.maskedName || (u.title + (u.firstName ? u.firstName.substring(0,3) + '***' : '') + ' ****');
+
         openTransferModal(
           'transferDelegator',
           '🔄 พบผู้ช่วยเหลือเดิมในระบบ',
-          `หมายเลขบัตร <b>${targetVipCard}</b> (${u.title}${u.firstName} ${u.lastName}) มีอยู่ในระบบแล้วโดยผู้ช่วยเหลือท่านอื่น<br><br>หากท่านต้องการ <b>"รับช่วงดูแลแทน"</b> กรุณายืนยันเบอร์โทรศัพท์ของผู้ลงทะเบียนให้ถูกต้อง:`
+          `หมายเลขบัตร <b>${targetVipCard}</b> (${displayName}) มีอยู่ในระบบแล้วโดยผู้ช่วยเหลือท่านอื่น<br><br>หากท่านต้องการ <b>"รับช่วงดูแลแทน"</b> กรุณายืนยันเบอร์โทรศัพท์ของผู้ลงทะเบียนให้ถูกต้อง:`
         );
         return;
       }
