@@ -10,7 +10,7 @@
     .card { background: white; padding: 25px 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
     h2 { color: #003366; text-align: center; margin-bottom: 20px; font-size: 20px; }
     
-    .menu-btn { background-color: #ffffff; color: #003366; border: 2px solid #003366; padding: 18px; border-radius: 8px; width: 100%; font-size: 16px; cursor: pointer; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease; }
+    .menu-btn { background-color: #ffffff; color: #003366; border: 2px solid #003366; padding: 18px; border-radius: 8px; width: 100%; font-size: 16px; cursor: pointer; font-weight: bold; margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; transition: all 0.3s ease; text-align: center; }
     .menu-btn:hover { background-color: #003366; color: white; }
     .menu-btn-secondary { border-color: #17a2b8; color: #17a2b8; }
     .menu-btn-secondary:hover { background-color: #17a2b8; color: white; }
@@ -75,17 +75,20 @@
   <h2>ระบบทะเบียนอุปกรณ์อิเล็กทรอนิกส์ ทสภ.</h2>
   <p class="desc-text">ยินดีต้อนรับสู่ระบบลงทะเบียน กรุณาเลือกรูปแบบการลงทะเบียนที่ท่านต้องการดำเนินการ</p>
   
-  <button class="menu-btn" onclick="startSelfRegistration()">👤 ลงทะเบียนอุปกรณ์ของตนเอง</button>
+  <button class="menu-btn" onclick="startSelfRegistration()">
+    <span>👤 ลงทะเบียนอุปกรณ์ของตนเอง</span>
+  </button>
+  
   <button class="menu-btn menu-btn-secondary" onclick="showDelegatedMenu()">
-    👥 ลงทะเบียนแทนบุคคลอื่น<br><span style="font-size: 12px; font-weight: normal;">(สำหรับผู้บังคับบัญชา / ผู้ไม่สะดวกใช้ LINE)</span>
+    <div>👥 ลงทะเบียนแทนบุคคลอื่น</div>
+    <div style="font-size: 12px; font-weight: normal; margin-top: 3px;">(สำหรับผู้บังคับบัญชา / ผู้ไม่สะดวกใช้ LINE)</div>
   </button>
 </div>
 
-<!-- หน้าจอใหม่: แสดงรายการที่เคยลงทะเบียนแทนผู้อื่น -->
 <div id="vipListScreen" class="card" style="display: none;">
   <h2>ประวัติการลงทะเบียนแทนบุคคลอื่น</h2>
   <div id="delegatedListContainer"></div>
-  <button class="btn btn-add" style="margin-top: 15px;" onclick="showVipSearchForm()">+ เพิ่มผู้บังคับบัญชาท่านใหม่</button>
+  <button class="btn btn-add" style="margin-top: 15px;" onclick="showVipSearchForm()">+ เพิ่มรายการลงทะเบียนแทนผู้อื่น</button>
   <button class="btn btn-back" onclick="showScreen('menuScreen')">⬅️ ย้อนกลับไปเมนูหลัก</button>
 </div>
 
@@ -93,7 +96,7 @@
   <h2>ลงทะเบียนแทนบุคคลอื่น</h2>
   <p class="desc-text">ระบบจะบันทึก LINE ID ของท่านในฐานะ "ผู้ดำเนินการแทน" เพื่อความปลอดภัยและตรวจสอบย้อนหลัง</p>
   <div class="form-group">
-    <label>หมายเลขบัตรอนุญาตบุคคลของผู้บังคับบัญชา *</label>
+    <label>หมายเลขบัตรอนุญาตบุคคลของผู้ลงทะเบียน *</label>
     <input type="text" id="searchVipCard" placeholder="เช่น SUV/17330/00807/68" oninput="this.value = this.value.toUpperCase()">
   </div>
   <button class="btn" style="background-color: #17a2b8; margin-bottom: 10px;" onclick="searchVipRegistration()">🔍 ตรวจสอบ / สร้างข้อมูลใหม่</button>
@@ -360,7 +363,6 @@
     await fetchUserData();
   }
 
-  // ฟังก์ชันใหม่: เรียกดูประวัติการลงทะเบียนแทนผู้อื่น
   async function showDelegatedMenu() {
     currentMode = 'delegated';
     showScreen('loadingScreen');
@@ -369,7 +371,6 @@
       const data = await fetchJSONP(url);
       
       if (data.status === 'success' && data.list && data.list.length > 0) {
-        // มีประวัติ ให้แสดงรายการปุ่มรายชื่อ
         const container = document.getElementById('delegatedListContainer');
         container.innerHTML = '<p class="desc-text" style="color:#003366; font-weight:bold;">ท่านมีรายการลงทะเบียนให้ผู้อื่นดังนี้:</p>';
         
@@ -388,16 +389,13 @@
         });
         showScreen('vipListScreen');
       } else {
-        // ไม่มีประวัติ วิ่งทะลุไปหน้าค้นหาเลย
         showVipSearchForm();
       }
     } catch (err) {
-      // ถ้า error ให้ fallback ไปหน้าค้นหา
       showVipSearchForm();
     }
   }
 
-  // เปลี่ยนชื่อจาก showVipSearch() เป็น showVipSearchForm()
   function showVipSearchForm() {
     currentMode = 'delegated';
     document.getElementById('searchVipCard').value = '';
